@@ -162,6 +162,28 @@ def plot_spectra(plotting_dict_list, event=None, extra_annotations=[], xlim=None
         plt.show()
         
     scaled_plot(f_plot, scale_fig)
+    
+def plot_beamforming(data, R, cbar_label='', ax_unit='cm',
+                        scale_fig=1.0):
+    
+    def f_plot():
+        fig, ax = plt.subplots()
+        im_masked = np.ma.masked_where(data==0,data)
+        im=ax.imshow(im_masked,extent=(-R,R,-R,R),origin='lower', zorder=2)
+
+        cbar = fig.colorbar(im)
+        ax.set_aspect('equal')
+        ax.set_xlim(-(R+0.5),R+0.5)
+        ax.set_ylim(-(R+0.5),R+0.5)
+        
+        xlabel='x[' + ax_unit + ']'
+        ylabel='y[' + ax_unit + ']'
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        
+        cbar.ax.set_ylabel(cbar_label)
+    
+    scaled_plot(f_plot, scale_fig)
 
 def plot_TS(plotting_dict_list, xlim=None, ylim=None, prefixX='', prefixY='', 
             name=None, scale_fig=1.0, logscale=False, legend_location='upper right'):
