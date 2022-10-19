@@ -17,14 +17,14 @@ required = [
 ]
 
 setuptools.setup(
-    name="MFanalysis",
-    version="0.1.0",
+    name="tsp",
+    version="0.2.0",
     author="Florian Thomas",
     author_email="fthomas@uni-mainz.de",
-    description="https://github.com/MCFlowMace/MF-Analysis",
+    description="https://github.com/MCFlowMace/thesis-signal-processing",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/MCFlowMace/MF-Analysis",
+    url="https://github.com/MCFlowMace/thesis-signal-processing",
     packages=setuptools.find_packages(),
     #package_data={'cresana': ['hexbug/**/**/*', 'hexbug/**/*', 'settings/*']},
     classifiers=[
