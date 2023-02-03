@@ -164,7 +164,7 @@ def plot_spectra(plotting_dict_list, event=None, extra_annotations=[], xlim=None
     scaled_plot(f_plot, scale_fig)
     
 def plot_beamforming(data, R, cbar_label='', ax_unit='cm',
-                        scale_fig=1.0):
+                        scale_fig=1.0, name=None):
     
     def f_plot():
         fig, ax = plt.subplots()
@@ -173,8 +173,8 @@ def plot_beamforming(data, R, cbar_label='', ax_unit='cm',
 
         cbar = fig.colorbar(im)
         ax.set_aspect('equal')
-        ax.set_xlim(-(R+0.5),R+0.5)
-        ax.set_ylim(-(R+0.5),R+0.5)
+       # ax.set_xlim(-(R+0.5),R+0.5)
+       # ax.set_ylim(-(R+0.5),R+0.5)
         
         xlabel='x[' + ax_unit + ']'
         ylabel='y[' + ax_unit + ']'
@@ -182,6 +182,11 @@ def plot_beamforming(data, R, cbar_label='', ax_unit='cm',
         ax.set_ylabel(ylabel)
         
         cbar.ax.set_ylabel(cbar_label)
+        
+        if name is not None:
+            fig.savefig(name+'.svg')
+
+        plt.show()
     
     scaled_plot(f_plot, scale_fig)
 
