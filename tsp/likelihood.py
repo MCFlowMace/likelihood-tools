@@ -28,17 +28,22 @@ class LikelihoodModel(ABC):
     
 class GaussianLikelihoodModel(LikelihoodModel):
     
-    def __init__(self, f, sigma):
+    def __init__(self, f, sigma, complex_data=False):
         LikelihoodModel.__init__(self, f)
         self.sigma = sigma
+        self.complex_data = complex_data
         
     #def likelihood_pdf(self):
     #    return lambda theta,x: norm.pdf(x,scale=self.sigma, loc=self.f(*theta))
     def log_likelihood_pdf(self):
-        return lambda theta,x: -0.5*((x - self.f(*theta))/self.sigma)**2
+        return lambda theta,x: -0.5*np.abs((x - self.f(*theta))/self.sigma)**2
         
     def gen_noise(self, n):
-        return np.random.normal(loc=0, scale=self.sigma, size=n)
+        
+        if self.complex_data:
+             np.random.normal(loc=0, scale=self.sigma/2, size=(n, 2)).view(np.complex128)
+        else:
+            return np.random.normal(loc=0, scale=self.sigma, size=n)
 
 def get_best_fit_vals(scan_vals, ll_vals):
     
