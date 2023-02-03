@@ -9,6 +9,7 @@ Date: September 22, 2022
 import numpy as np
 from scipy.stats import norm
 from scipy.stats import chi2
+from tqdm import tqdm
 
 from abc import ABC, abstractmethod
 
@@ -178,7 +179,7 @@ class LikelihoodGridScanner:
         grid_flattened = np.reshape(self.grid, (-1, self.grid.shape[-1]))
         llh_vals_flat = np.empty(grid_flattened.shape[0])
 
-        for i,param in enumerate(grid_flattened):
+        for i,param in enumerate(tqdm(grid_flattened)):
             llh_vals_flat[i] = self.log_likelihood(param, data)
 
         llh_vals = np.reshape(llh_vals_flat, self.grid.shape[:-1])
