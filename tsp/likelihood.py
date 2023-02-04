@@ -11,6 +11,7 @@ from scipy.stats import norm
 from scipy.stats import chi2
 from tqdm import tqdm
 from scipy.interpolate import interp1d, interp2d
+from scipy.optimize import root_scalar
 
 from abc import ABC, abstractmethod
 
@@ -90,6 +91,7 @@ class LikelihoodScan:
         self.ax_names = ax_names
         self.fixed_view_parameters = fixed_view_parameters
         self.llh_f = llh_f
+        self.dim = len(axes)
         
     def make_view(self, view=None):
         
@@ -168,7 +170,7 @@ class LikelihoodScan:
             raise ValueError('Can only interpolate 1D and 2D scans')
             
         if len(self.axes)==2:
-            self.llh_f = lambda x: interp2d(self.axes[0], self.axes[1], self.llh, kind='cubic')(x[0], x[1])
+            self.llh_f = lambda x: interp2d(self.axes[0], self.axes[1], self.llh.transpose(), kind='cubic')(x[0], x[1]).transpose()
         else:
             self.llh_f = lambda x: interp1d(self.axes[0], self.llh, kind='cubic')(x[0])
         
@@ -196,9 +198,10 @@ class LikelihoodGridScanner:
         
     def make_scanning_grid(self, truth, delta, n):
         
-        if np.any(n % 2):
-            #if any odd n is present
-            print('Warning: If truth should be part of grid pick an even number of grid points in all dimensions')
+        #if np.any(n % 2):
+        if np.any((n!=0)&(n%2==0)):
+            #if any even n is present
+            print('Warning: If truth should be part of grid pick an odd number of grid points in all dimensions')
         
         zeros = n==0
         delta[zeros] = 0
@@ -206,13 +209,27 @@ class LikelihoodGridScanner:
         
         left = truth - delta
         right = truth + delta
-        step = (right-left)/n
+        step = np.ones_like(truth)
+        step[~zeros] = 2*delta[~zeros]/(n[~zeros]-1)
         
-        right[zeros] = left[zeros] + 1e-3
-        step[zeros] = 1000
+        #~ right[zeros] = left[zeros] + 1e-3
+        #~ step[zeros] = 1000
         
+        #~ self.axes = tuple(np.arange(start, stop, step) for (start, stop, step) in zip(left, right, step))
+        
+        #linspace = tuple(np.linspace(start, stop, num, retstep=True) for (start, stop, num) in zip(left, right, n))
+        #self.axes = tuple(ax[0] for ax in linspace)
+        right = right + step
         self.axes = tuple(np.arange(start, stop, step) for (start, stop, step) in zip(left, right, step))
+        #step = tuple(1 if np.isnan(ax[1]) else ax[1] for ax in linspace)
+        
+      #  print('l, r, s', left, right, step)
+        
         self.build_grid(zip(left, right, step))
+        
+
+
+
         
     def scan_likelihood(self, data):
 
