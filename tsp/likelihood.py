@@ -430,8 +430,8 @@ class Fitter(ABC):
     @abstractmethod    
     def get_best_fit_with_errors_profile(self, llh_scan):
         pass
-        
-    
+                        
+                        
 class GridFitter(Fitter):
     
     def __init__(self, confidence_levels):
@@ -505,6 +505,11 @@ class GridFitter(Fitter):
             
                 
     def make_profile_llh(self, llh_scan, parameters_of_interest):
+        
+        if llh_scan.llh is None:
+            if llh_scan.llh_f is None:
+                raise ValueError('Needs a scanned likelihood on a grid or a likelihood function')
+            llh_scan.llh = llh_scan.llh_f(llh_scan.axes)
         
         axes_tp = tuple(i for i in range(parameters_of_interest, llh_scan.llh.ndim))
         profile_llh = np.max(llh_scan.llh, axis=axes_tp)
