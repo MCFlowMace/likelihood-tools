@@ -286,9 +286,12 @@ def plot_keys_in_dict_of_arrays(dict_of_arrays, x_key, y_keys, xunit, yunit, sca
 def make_2d_llh_plot(fit_result, scale_fig=1.0, debug=False, name=None):
     
     llh_scan = fit_result.llh_scan
-    
     llh = llh_scan.llh
     axes = llh_scan.axes
+    
+    if llh_scan.llh_f is not None:
+        llh = llh_scan.llh_f(axes)
+    
     ax_names = llh_scan.ax_names
     truth = llh_scan.truth
     
@@ -383,6 +386,10 @@ def make_1d_llh_plot(fit_result,  scale_fig=1.0, name=None):
     
     llh = llh_scan.llh
     axes = llh_scan.axes
+    
+    if llh_scan.llh_f is not None:
+        llh = llh_scan.llh_f(axes)
+    
     ax_names = llh_scan.ax_names
     truth = llh_scan.truth
     
