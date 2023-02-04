@@ -80,13 +80,15 @@ def get_best_fit(llh, axes):
 
 class LikelihoodScan:
     
-    def __init__(self, truth, llh, axes, ax_names, fixed_view_parameters):
+    def __init__(self, truth, llh, axes, ax_names, fixed_view_parameters,
+                    llh_f=None):
         
         self.truth = truth
         self.llh = llh
         self.axes = axes
         self.ax_names = ax_names
         self.fixed_view_parameters = fixed_view_parameters
+        self.llh_f = llh_f
         
     def make_view(self, view=None):
         
@@ -105,7 +107,25 @@ class LikelihoodScan:
                 fixed_view_parameters_old.update(fixed_view_parameters)
                 fixed_view_parameters = fixed_view_parameters_old
 
-            return LikelihoodScan(truth, llh, axes, ax_names, fixed_view_parameters)
+
+            def f_bar(x):
+                c = 0
+                param = []
+                for i, true_ind in enumerate(view_ax_ind):
+                    if true_ind:
+                        param.append(self.truth[i])
+                    else:
+                        param.append(x[c])
+                        c+=1
+                return self.llh_f(param)
+                
+            if self.llh_f is not None:
+                f_view = f_bar
+            else:
+                f_view = None
+                
+            return LikelihoodScan(truth, llh, axes, ax_names, 
+                                    fixed_view_parameters, f_view)
         else:
             return self
         
@@ -140,6 +160,14 @@ class LikelihoodScan:
     def find_closest_ax_ind(self, ax, val):
         return np.searchsorted(ax, val)
         
+    def interpolate(self):
+        if len(self.axes)>2:
+            raise ValueError('Can only interpolate 1D and 2D scans')
+            
+        if llh_scan.llh.ndim==2:
+            self.llh_f = interp2d(self.axes[0], self.axes[1], self.llh, kind='cubic')
+        else:
+            self.llh_f = interp1d(self.axes[0], self.llh, kind='cubic')
         
 class LikelihoodGridScanner:
     
@@ -194,12 +222,17 @@ class LikelihoodGridScanner:
         
         return llh_vals
         
-    def __call__(self, data):
+    def __call__(self, data, interpolate=False):
         
         llh_vals = self.scan_likelihood(data)
         
-        return LikelihoodScan(self.truth, llh_vals, self.axes, 
-                                self.ax_names, None).make_view(self.view)
+        llh_scan = LikelihoodScan(self.truth, llh_vals, self.axes, 
+                                    self.ax_names, None, None).make_view(self.view)
+        
+        if interpolate:
+            llh_scan.interpolate()
+            
+        return llh_scan
                                 
     def get_asimov_scan(self):
         
