@@ -36,12 +36,15 @@ class GaussianLikelihoodModel(LikelihoodModel):
     #def likelihood_pdf(self):
     #    return lambda theta,x: norm.pdf(x,scale=self.sigma, loc=self.f(*theta))
     def log_likelihood_pdf(self):
-        return lambda theta,x: -0.5*np.abs((x - self.f(*theta))/self.sigma)**2
+        sigma = self.sigma
+        if self.complex_data:
+            sigma = sigma/2
+        return lambda theta,x: -0.5*np.abs((x - self.f(*theta))/sigma)**2
         
     def gen_noise(self, n):
         
         if self.complex_data:
-             np.random.normal(loc=0, scale=self.sigma/2, size=(n, 2)).view(np.complex128)
+             return np.random.normal(loc=0, scale=self.sigma/2, size=(n, 2)).view(np.complex128)
         else:
             return np.random.normal(loc=0, scale=self.sigma, size=n)
 
