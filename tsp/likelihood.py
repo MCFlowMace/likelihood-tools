@@ -10,6 +10,7 @@ import numpy as np
 from scipy.stats import norm
 from scipy.stats import chi2
 from tqdm import tqdm
+from scipy.interpolate import interp1d, interp2d
 
 from abc import ABC, abstractmethod
 
@@ -111,8 +112,8 @@ class LikelihoodScan:
             def f_bar(x):
                 c = 0
                 param = []
-                for i, true_ind in enumerate(view_ax_ind):
-                    if true_ind:
+                for i, scan_ind in enumerate(view_ax_ind):
+                    if not scan_ind:
                         param.append(self.truth[i])
                     else:
                         param.append(x[c])
@@ -164,10 +165,10 @@ class LikelihoodScan:
         if len(self.axes)>2:
             raise ValueError('Can only interpolate 1D and 2D scans')
             
-        if llh_scan.llh.ndim==2:
-            self.llh_f = interp2d(self.axes[0], self.axes[1], self.llh, kind='cubic')
+        if len(self.axes)==2:
+            self.llh_f = lambda x: interp2d(self.axes[0], self.axes[1], self.llh, kind='cubic')(x[0], x[1])
         else:
-            self.llh_f = interp1d(self.axes[0], self.llh, kind='cubic')
+            self.llh_f = lambda x: interp1d(self.axes[0], self.llh, kind='cubic')(x[0])
         
 class LikelihoodGridScanner:
     
