@@ -181,6 +181,7 @@ class LikelihoodGridScanner:
         self.ax_names = ax_names
         self.view = tuple(None if n>0 else 'default' for n in n_grid)
         self.make_scanning_grid(np.array(truth), np.array(delta), np.array(n_grid))
+        self.dim = sum([n>0 for n in n_grid])
         
     def log_likelihood(self, theta, x):
         
@@ -286,7 +287,7 @@ class LikelihoodGridScanner:
         
         truth_view = self.get_param_view(self.truth)
         
-        if len(truth_view)>1:
+        if self.dim>1:
             raise ValueError('Can only approximate 1D llh scans')
         
         y_asimov = self.model.f(*self.truth)
@@ -308,7 +309,7 @@ class LikelihoodGridScanner:
         
         truth_view = self.get_param_view(self.truth)
         
-        if len(truth_view)>1:
+        if self.dim>1:
             raise ValueError('Can only approximate 1D llh scans')
            
         y_asimov = self.model.f(*self.truth)
