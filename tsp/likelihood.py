@@ -206,6 +206,86 @@ class LikelihoodGridScanner:
         data = self.model.f(*self.truth)
         
         return self(data)
+        
+    def get_param_view(self, param):
+        
+        view_ax_ind = [x is None for x in self.view]
+        return [t for i, t in enumerate(param) if view_ax_ind[i]]
+        
+    def get_offcenter_param(self, relative_offset):
+        relative_offset = relative_offset+0.5
+        ind = tuple(0 if x==1 else int(x*relative_offset) for x in self.grid.shape[:-1])
+        
+        return self.grid[ind]
+        
+    def approximate_llh_2order(self, relative_offset=0.05):
+        
+        truth_view = self.get_param_view(self.truth)
+        
+        if len(truth_view)>1:
+            raise ValueError('Can only approximate 1D llh scans')
+        
+        y_asimov = self.model.f(*self.truth)
+        
+        theta_a = truth_view[0]
+        #theta_bar = theta_a*(1 + delta)
+
+        param_bar = self.get_offcenter_param(relative_offset)
+        
+        theta_bar = self.get_param_view(param_bar)[0]
+        
+        alpha = self.log_likelihood(param_bar, y_asimov)
+        
+        a = alpha/(theta_bar - theta_a)**2
+        
+        return lambda theta: a*(theta-theta_a)**2
+        
+    def approximate_llh_4order(self, relative_offset=0.05):
+        
+        truth_view = self.get_param_view(self.truth)
+        
+        if len(truth_view)>1:
+            raise ValueError('Can only approximate 1D llh scans')
+           
+        y_asimov = self.model.f(*self.truth)
+        
+        theta_a = truth_view[0]
+        
+        param_1 = self.get_offcenter_param(relative_offset)
+        param_2 = self.get_offcenter_param(-relative_offset)
+        param_3 = self.get_offcenter_param(2*relative_offset)
+        
+        theta_1 = self.get_param_view(param_1)[0]
+        theta_2 = self.get_param_view(param_2)[0]
+        theta_3 = self.get_param_view(param_3)[0]
+        
+        alpha = self.log_likelihood(param_1, y_asimov)
+        beta = self.log_likelihood(param_2, y_asimov)
+        gamma = self.log_likelihood(param_3, y_asimov)
+        
+        d12 = theta_1-theta_2
+        d13 = theta_1-theta_3
+        d23 = theta_2-theta_3
+        da1 = theta_a-theta_1
+        da2 = theta_a-theta_2
+        da3 = theta_a-theta_3
+        
+        d = d12*d23
+        
+        a = (-beta/da2**2 + ((gamma*d12)/da3**2 + alpha*d23/da1**2)/d13)/d
+        
+        b = (beta*(2*theta_a+theta_1+theta_3)/da2**2
+             +(-(gamma*d12*(2*theta_a+theta_1+theta_2))/da3**2
+               +(alpha*(theta_3-theta_2)*(2*theta_a+theta_2+theta_3))/da1**2)/d13)/d
+        
+        c = (-beta*(theta_a**2+theta_1*theta_3+2*theta_a*(theta_1+theta_3))/da2**2
+            +((gamma*d12*(theta_a**2 + theta_1*theta_2+2*theta_a*(theta_1+theta_2)))/da3**2
+             +(alpha*d23*(theta_a**2+theta_2*theta_3+2*theta_a*(theta_2+theta_3)))/da1**2)/d13)/d
+        
+        f = lambda theta: (c*(theta-theta_a)**2 + a*(theta**4 + 3*theta_a**4 - 4*theta_a**3*theta)
+                             +b*(theta**3 + 2*theta_a**3 - 3*theta*theta_a**2))
+        
+        return f
 
 
 class FitResult:
@@ -438,64 +518,3 @@ def get_parameter_resolution(theta, likelihood_model, n_repeat,
     
     return res, res_err
     
-    
-def approximate_llh_2order(llh_scanner, delta, free_parameter):
-    
-    y_asimov = llh_scanner.model.f(*llh_scanner.truth)
-    
-    theta_a = llh_scanner.truth[free_parameter]
-    theta_bar = theta_a*(1 + delta)
-    
-    truth_c = llh_scanner.truth.copy()
-    truth_c[free_parameter] = theta_bar
-    
-    alpha = llh_scanner_f.log_likelihood(truth_c, y_asimov)
-    
-    a = alpha/(theta_bar - theta_a)**2
-    
-    return lambda theta: a*(theta-theta_a)**2
-    
-
-def approximate_llh_4order(llh_scanner, delta, free_parameter):
-       
-    y_asimov = llh_scanner.model.f(*llh_scanner.truth)
-    
-    theta_a = llh_scanner.truth[free_parameter]
-    theta_1 = theta_a*(1 + delta)
-    theta_2 = theta_a*(1 - delta)
-    theta_3 = theta_a*(1 + 2*delta)
-    
-    truth_1 = llh_scanner.truth.copy()
-    truth_2 = llh_scanner.truth.copy()
-    truth_3 = llh_scanner.truth.copy()
-    truth_1[free_parameter] = theta_1
-    truth_2[free_parameter] = theta_2
-    truth_3[free_parameter] = theta_3
-    
-    alpha = llh_scanner_f.log_likelihood(truth_1, y_asimov)
-    beta = llh_scanner_f.log_likelihood(truth_2, y_asimov)
-    gamma = llh_scanner_f.log_likelihood(truth_3, y_asimov)
-    
-    d12 = theta_1-theta_2
-    d13 = theta_1-theta_3
-    d23 = theta_2-theta_3
-    da1 = theta_a-theta_1
-    da2 = theta_a-theta_2
-    da3 = theta_a-theta_3
-    
-    d = d12*d23
-    
-    a = (-beta/da2**2 + ((gamma*d12)/da3**2 + alpha*d23/da1**2)/d13)/d
-    
-    b = (beta*(2*theta_a+theta_1+theta_3)/da2**2
-         +(-(gamma*d12*(2*theta_a+theta_1+theta_2))/da3**2
-           +(alpha*(theta_3-theta_2)*(2*theta_a+theta_2+theta_3))/da1**2)/d13)/d
-    
-    c = (-beta*(theta_a**2+theta_1*theta_3+2*theta_a*(theta_1+theta_3))/da2**2
-        +((gamma*d12*(theta_a**2 + theta_1*theta_2+2*theta_a*(theta_1+theta_2)))/da3**2
-         +(alpha*d23*(theta_a**2+theta_2*theta_3+2*theta_a*(theta_2+theta_3)))/da1**2)/d13)/d
-    
-    f = lambda theta: (c*(theta-theta_a)**2 + a*(theta**4 + 3*theta_a**4 - 4*theta_a**3*theta)
-                         +b*(theta**3 + 2*theta_a**3 - 3*theta*theta_a**2))
-    
-    return f
