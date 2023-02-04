@@ -98,7 +98,9 @@ class LikelihoodScan:
             view_ax_ind = self.make_view_ax_ind(view)
 
             truth = [t for i, t in enumerate(self.truth) if view_ax_ind[i]]
-            llh = self.llh[tuple(view_slices)]
+            llh = self.llh
+            if llh is not None:
+                llh = llh[tuple(view_slices)]
             axes = tuple(ax for i, ax in enumerate(self.axes) if view_ax_ind[i])
             ax_names = [n for i, n in enumerate(self.ax_names) if view_ax_ind[i]]
             fixed_view_parameters = {name: (self.axes[i][view_slices[i]], i) for i, name in enumerate(self.ax_names) if not view_ax_ind[i]}
@@ -235,11 +237,39 @@ class LikelihoodGridScanner:
             
         return llh_scan
                                 
-    def get_asimov_scan(self):
+    def get_asimov_scan(self, approximation_samples=None):
         
-        data = self.model.f(*self.truth)
+        if approximation_samples is None:
+            data = self.model.f(*self.truth)
         
-        return self(data)
+            return self(data)
+            
+        elif approximation_samples==1:
+            
+            llh_f = self.approximate_llh_2order()
+            
+            llh_scan = LikelihoodScan(self.truth, None, self.axes, 
+                                    self.ax_names, None, None).make_view(self.view)
+                                    
+            llh_scan.llh_f = lambda x: llh_f(x[0])
+            
+            return llh_scan
+            
+        elif approximation_samples==3:
+            
+            llh_f = self.approximate_llh_4order()
+            
+            llh_scan = LikelihoodScan(self.truth, None, self.axes, 
+                                    self.ax_names, None, None).make_view(self.view)
+                                    
+            llh_scan.llh_f = lambda x: llh_f(x[0])
+            
+            return llh_scan
+            
+        #elif approximation_samples>3:
+        #    pass
+        else:
+            raise ValueError('Invalid number of approximation samples')
         
     def get_param_view(self, param):
         
