@@ -122,7 +122,7 @@ class LikelihoodScan:
                     else:
                         param.append(x[c])
                         c+=1
-                return self.llh_f(param)
+                return np.squeeze(self.llh_f(param))
                 
             if self.llh_f is not None:
                 f_view = f_bar
@@ -170,9 +170,11 @@ class LikelihoodScan:
             raise ValueError('Can only interpolate 1D and 2D scans')
             
         if len(self.axes)==2:
-            self.llh_f = lambda x: interp2d(self.axes[0], self.axes[1], self.llh.transpose(), kind='cubic')(x[0], x[1]).transpose()
+            interpolation = interp2d(self.axes[0], self.axes[1], self.llh.transpose(), kind='cubic')
+            self.llh_f = lambda x: interpolation(x[0], x[1]).transpose()
         else:
-            self.llh_f = lambda x: interp1d(self.axes[0], self.llh, kind='cubic')(x[0])
+            interpolation = interp1d(self.axes[0], self.llh, kind='cubic')
+            self.llh_f = lambda x: interpolation(x[0])
         
 class LikelihoodGridScanner:
     
