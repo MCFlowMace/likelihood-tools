@@ -11,7 +11,7 @@ from scipy.stats import norm
 from scipy.stats import chi2
 from tqdm import tqdm
 from scipy.interpolate import interp1d, interp2d
-from scipy.optimize import root_scalar
+from scipy.optimize import root_scalar, minimize_scalar
 
 from abc import ABC, abstractmethod
 
@@ -460,34 +460,45 @@ class FunctionFitter(Fitter):
         if not asimov:
             raise NotImplementedError('This fitter for non-asimov datasets is not implemented')
         
- """   def make_profile_llh(self, llh_scan, parameters_of_interest):
+    def make_profile_llh(self, llh_scan, parameters_of_interest):
         
-        if llh_scan.llh is None:
-            if llh_scan.llh_f is None:
-                raise ValueError('Needs a scanned likelihood on a grid or a likelihood function')
-            llh_scan.llh = llh_scan.llh_f(llh_scan.axes)
+        if llh_scan.llh_f is None:
+            raise ValueError('Needs a likelihood function')
+            
+        if parameters_of_interest>1:
+            raise NotImplementedError('No implementation for profile likelihood with more than 1 parameter of interest')
+            
+        if llh_scan.dim==2:
+            profile_llh = np.empty(llh_scan.axes[1].shape)
+            x_pos = np.empty(llh_scan.axes[1].shape)
+            for i, y in enumerate(llh_scan.axes[1]):
+                x = minimize(lambda x: -llh_scan.llh_f([x, y]), x0=llh_scan.truth[0], 
+                               method='Powell',
+                                bounds=[[llh_scan.axes[0][0],llh_scan.axes[0][-1]]]).x[0]
+                profile_llh[i] = llh_scan.llh_f([x, y])
+                x_pos[i] = x
+                
+            ind = np.argsort(x_pos)
+            x_pos_sort = x_pos[ind]
+            profile_llh_sort = profile_llh[ind]
+
+            first = np.argmax(x_pos_sort>x_pos_sort[0])
+            last = len(x_pos) - np.argmax(x_pos_sort[::-1]<x_pos_sort[-1])
+
+            f = interp1d(x_pos_sort[first:last], profile_llh_sort[first:last], kind='cubic', bounds_error=False)
+
+            view = tuple(None if i<parameters_of_interest else llh_scan.truth[i] for i in range(llh_scan.dim))
+                                    
+            profile_llh_scan = llh_scan.make_view(view)
+            
+            profile_llh_scan.llh = profile_llh
+            
+            profile_llh_scan.llh_f = lambda x: f(x[0])
+            
+        else:
+            profile_llh_scan = llh_scan
         
-        axes_tp = tuple(i for i in range(parameters_of_interest, llh_scan.llh.ndim))
-        profile_llh = np.max(llh_scan.llh, axis=axes_tp)
-        
-        #~ profile_truth = llh_scan.truth[:parameters_of_interest]
-        #~ profile_axes = llh_scan.axes[:parameters_of_interest]
-        #~ profile_ax_names = llh_scan.ax_names[:parameters_of_interest]
-        
-        #~ profile_llh_scan = LikelihoodScan(profile_truth, profile_llh, profile_axes, 
-                                #~ profile_ax_names, None)
-                                
-        max_llh, max_ind = self.get_max_llh(llh_scan.llh)
-        
-        view = tuple(None if i<parameters_of_interest else llh_scan.axes[i][ind_i] for i, ind_i in enumerate(max_ind))
-        
-      #  print('view', view)
-                                
-        profile_llh_scan = llh_scan.make_view(view)
-        
-        profile_llh_scan.llh = profile_llh
-        
-        return profile_llh_scan"""
+        return profile_llh_scan
         
     def find_roots(self, llh_scan, threshold):
         
@@ -512,9 +523,6 @@ class FunctionFitter(Fitter):
         axes = llh_scan.axes
         
         max_llh = 0
-        #best_fit = llh_scan.truth[0]
-       # max_llh, max_ind = self.get_max_llh(llh)
-       # max_ind_np = np.array(max_ind)
         
         llh_vals = []
         
@@ -523,8 +531,6 @@ class FunctionFitter(Fitter):
             threshold = self.get_confidence_threshold(max_llh, level, len(axes))
             llh_vals.append(threshold)
             bound_vals[i] = self.find_roots(llh_scan, threshold)
-     
-        #bound_vals = self.transform_ax_ind_to_val(bounds_ind, axes)
         
         best_fit = np.expand_dims(llh_scan.truth,(0,-1))
         
@@ -632,7 +638,9 @@ class GridFitter(Fitter):
         
         view = tuple(None if i<parameters_of_interest else llh_scan.axes[i][ind_i] for i, ind_i in enumerate(max_ind))
         
-      #  print('view', view)
+        print('ax tp', axes_tp)
+        print('profile llh', profile_llh.shape)
+        print('view', view)
                                 
         profile_llh_scan = llh_scan.make_view(view)
         
