@@ -449,6 +449,94 @@ class Fitter(ABC):
     @abstractmethod    
     def get_best_fit_with_errors_profile(self, llh_scan):
         pass
+             
+             
+        
+class FunctionFitter(Fitter):
+    
+    def __init__(self, confidence_levels, asimov=True):
+        Fitter.__init__(self, confidence_levels)
+        
+        if not asimov:
+            raise NotImplementedError('This fitter for non-asimov datasets is not implemented')
+        
+ """   def make_profile_llh(self, llh_scan, parameters_of_interest):
+        
+        if llh_scan.llh is None:
+            if llh_scan.llh_f is None:
+                raise ValueError('Needs a scanned likelihood on a grid or a likelihood function')
+            llh_scan.llh = llh_scan.llh_f(llh_scan.axes)
+        
+        axes_tp = tuple(i for i in range(parameters_of_interest, llh_scan.llh.ndim))
+        profile_llh = np.max(llh_scan.llh, axis=axes_tp)
+        
+        #~ profile_truth = llh_scan.truth[:parameters_of_interest]
+        #~ profile_axes = llh_scan.axes[:parameters_of_interest]
+        #~ profile_ax_names = llh_scan.ax_names[:parameters_of_interest]
+        
+        #~ profile_llh_scan = LikelihoodScan(profile_truth, profile_llh, profile_axes, 
+                                #~ profile_ax_names, None)
+                                
+        max_llh, max_ind = self.get_max_llh(llh_scan.llh)
+        
+        view = tuple(None if i<parameters_of_interest else llh_scan.axes[i][ind_i] for i, ind_i in enumerate(max_ind))
+        
+      #  print('view', view)
+                                
+        profile_llh_scan = llh_scan.make_view(view)
+        
+        profile_llh_scan.llh = profile_llh
+        
+        return profile_llh_scan"""
+        
+    def find_roots(self, llh_scan, threshold):
+        
+        left = root_scalar(lambda x: llh_scan.llh_f([x])-threshold, 
+                            method='secant', x0=llh_scan.axes[0][0], x1=llh_scan.truth[0]).root
+                            
+        right = root_scalar(lambda x: llh_scan.llh_f([x])-threshold, 
+                            method='secant', x0=llh_scan.truth[0], x1=llh_scan.axes[0][-1]).root
+        
+        return np.array([left, right])
+        
+    def get_best_fit_with_errors_profile(self, llh_scan):
+        """
+        If parameters_of_interest=n it is assumed that the first n parameters
+        defined by llh_scan.axes are those of interest, the remaining parameters
+        are nuisance parameters.
+        """
+        
+        if llh_scan.dim != 1:
+            raise ValueError('Root finding based fitter needs 1D llh scan')
+        
+        axes = llh_scan.axes
+        
+        max_llh = 0
+        #best_fit = llh_scan.truth[0]
+       # max_llh, max_ind = self.get_max_llh(llh)
+       # max_ind_np = np.array(max_ind)
+        
+        llh_vals = []
+        
+        bound_vals = np.empty((len(self.confidence_levels), len(axes), 2))
+        for i, level in enumerate(self.confidence_levels):
+            threshold = self.get_confidence_threshold(max_llh, level, len(axes))
+            llh_vals.append(threshold)
+            bound_vals[i] = self.find_roots(llh_scan, threshold)
+     
+        #bound_vals = self.transform_ax_ind_to_val(bounds_ind, axes)
+        
+        best_fit = np.expand_dims(llh_scan.truth,(0,-1))
+        
+        errors = np.empty(bound_vals.shape)
+        
+        errors[...,0] = best_fit[...,0] - bound_vals[...,0]
+        errors[...,1] = bound_vals[...,1]-best_fit[...,0]
+        
+        llh_vals.append(max_llh)
+
+        return FitResult(best_fit[0,:,0], errors, self.confidence_levels, 
+                        np.array(llh_vals), llh_scan)
                         
                         
 class GridFitter(Fitter):
