@@ -11,7 +11,7 @@ from scipy.stats import norm
 from scipy.stats import chi2
 from tqdm import tqdm
 from scipy.interpolate import interp1d, interp2d
-from scipy.optimize import root_scalar, minimize_scalar
+from scipy.optimize import root_scalar, minimize
 
 from abc import ABC, abstractmethod
 
@@ -485,7 +485,7 @@ class FunctionFitter(Fitter):
             first = np.argmax(x_pos_sort>x_pos_sort[0])
             last = len(x_pos) - np.argmax(x_pos_sort[::-1]<x_pos_sort[-1])
 
-            f = interp1d(x_pos_sort[first:last], profile_llh_sort[first:last], kind='cubic', bounds_error=False)
+            f = interp1d(x_pos_sort[first:last], profile_llh_sort[first:last], kind='cubic', bounds_error=False, fill_value='extrapolate')
 
             view = tuple(None if i<parameters_of_interest else llh_scan.truth[i] for i in range(llh_scan.dim))
                                     
@@ -637,11 +637,7 @@ class GridFitter(Fitter):
         max_llh, max_ind = self.get_max_llh(llh_scan.llh)
         
         view = tuple(None if i<parameters_of_interest else llh_scan.axes[i][ind_i] for i, ind_i in enumerate(max_ind))
-        
-        print('ax tp', axes_tp)
-        print('profile llh', profile_llh.shape)
-        print('view', view)
-                                
+          
         profile_llh_scan = llh_scan.make_view(view)
         
         profile_llh_scan.llh = profile_llh
