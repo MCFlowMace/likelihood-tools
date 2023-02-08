@@ -93,6 +93,16 @@ class LikelihoodScan:
         self.llh_f = llh_f
         self.dim = len(axes)
         
+    def get_original_param_index(self):
+        ind = np.arange(self.dim)
+        missing = self.fixed_view_parameters
+        
+        if missing is not None:
+            for k in missing.keys():
+                ind[ind>=missing[k][1]] +=1
+            
+        return ind
+        
     def make_view(self, view=None):
         
         if view is not None:
@@ -105,7 +115,10 @@ class LikelihoodScan:
                 llh = llh[tuple(view_slices)]
             axes = tuple(ax for i, ax in enumerate(self.axes) if view_ax_ind[i])
             ax_names = [n for i, n in enumerate(self.ax_names) if view_ax_ind[i]]
-            fixed_view_parameters = {name: (self.axes[i][view_slices[i]], i) for i, name in enumerate(self.ax_names) if not view_ax_ind[i]}
+            
+            orig_ind= self.get_original_param_index()
+            
+            fixed_view_parameters = {name: (self.axes[i][view_slices[i]], orig_ind[i]) for i, name in enumerate(self.ax_names) if not view_ax_ind[i]}
             
             if self.fixed_view_parameters is not None:
                 fixed_view_parameters_old = self.fixed_view_parameters.copy()
@@ -399,10 +412,12 @@ class FitResult:
             vals_missing = [missing[k][0] for k in missing.keys()]
             inds_missing = [missing[k][1] for k in missing.keys()]
 
-            ind = np.arange(len(self.best_fit_view))
+            #ind = np.arange(len(self.best_fit_view))
 
-            for k in missing.keys():
-                ind[ind>=missing[k][1]] +=1
+            #for k in missing.keys():
+            #    ind[ind>=missing[k][1]] +=1
+            
+            ind = self.llh_scan.get_original_param_index()
 
             best_fit[ind] = self.best_fit_view
             best_fit[inds_missing] = vals_missing
