@@ -178,15 +178,21 @@ class LikelihoodScan:
     def find_closest_ax_ind(self, ax, val):
         return np.searchsorted(ax, val)
         
-    def interpolate(self):
+    def interpolate(self, interpolation_axes=None):
+        
+        if interpolation_axes is None:
+            axes = self.axes
+        else:
+            axes = interpolation_axes
+        
         if len(self.axes)>2:
             raise ValueError('Can only interpolate 1D and 2D scans')
             
         if len(self.axes)==2:
-            interpolation = interp2d(self.axes[0], self.axes[1], self.llh.transpose(), kind='cubic')
+            interpolation = interp2d(axes[0], axes[1], self.llh.transpose(), kind='cubic', bounds_error=False)
             self.llh_f = lambda x: interpolation(x[0], x[1]).transpose()
         else:
-            interpolation = interp1d(self.axes[0], self.llh, kind='cubic')
+            interpolation = interp1d(axes[0], self.llh, kind='cubic', bounds_error=False, fill_value='extrapolate')
             self.llh_f = lambda x: interpolation(x[0])
         
 class LikelihoodGridScanner:
@@ -195,9 +201,10 @@ class LikelihoodGridScanner:
         
         self.model = model
         self.truth = truth
+        self.delta = delta
         self.ax_names = ax_names
         self.view = tuple(None if n>0 else 'default' for n in n_grid)
-        self.grid = self.make_scanning_grid(np.array(truth), np.array(delta), np.array(n_grid))
+        self.grid, self.axes = self.make_scanning_grid(np.array(truth), np.array(delta), np.array(n_grid))
         self.dim = sum([n>0 for n in n_grid])
         
     def log_likelihood(self, theta, x):
@@ -209,8 +216,10 @@ class LikelihoodGridScanner:
     def get_grid(self, list_of_vars):
         slices = tuple(slice(start, stop, step) for (start, stop, step) in list_of_vars)
         grid = np.mgrid[slices]
-        #self.grid = np.moveaxis(grid, 0, -1)
         return np.moveaxis(grid, 0, -1)
+        
+    def get_axes(self, list_of_vars):
+        return tuple(np.arange(start, stop, step) for (start, stop, step) in list_of_vars)
         
     def make_scanning_grid(self, truth, delta, n):
         
@@ -228,38 +237,23 @@ class LikelihoodGridScanner:
         step = np.ones_like(truth)
         step[~zeros] = 2*delta[~zeros]/(n[~zeros]-1)
         
-        #~ right[zeros] = left[zeros] + 1e-3
-        #~ step[zeros] = 1000
-        
-        #~ self.axes = tuple(np.arange(start, stop, step) for (start, stop, step) in zip(left, right, step))
-        
-        #linspace = tuple(np.linspace(start, stop, num, retstep=True) for (start, stop, num) in zip(left, right, n))
-        #self.axes = tuple(ax[0] for ax in linspace)
         right = right + step
-        self.axes = tuple(np.arange(start, stop, step) for (start, stop, step) in zip(left, right, step))
-        #step = tuple(1 if np.isnan(ax[1]) else ax[1] for ax in linspace)
+        axes = self.get_axes(zip(left, right, step))
+        grid = self.get_grid(zip(left, right, step))
         
-      #  print('l, r, s', left, right, step)
-        
-        return self.get_grid(zip(left, right, step))
+        return grid, axes
 
         
-    #~ def scan_likelihood(self, data):
-
-        #~ grid_flattened = np.reshape(self.grid, (-1, self.grid.shape[-1]))
-        #~ llh_vals_flat = np.empty(grid_flattened.shape[0])
-
-        #~ for i,param in enumerate(tqdm(grid_flattened)):
-            #~ llh_vals_flat[i] = self.log_likelihood(param, data)
-
-        #~ llh_vals = np.reshape(llh_vals_flat, self.grid.shape[:-1])
-        
-        #~ return llh_vals
-        
-    def scan_likelihood(self, data, grid=None, interpolate=False):
+    def scan_likelihood(self, data, grid=None, axes=None, interpolate=False):
         
         if grid is None:
             grid = self.grid
+        
+        if axes is not None:
+            if grid is None:
+                raise ValueError('Need both grid and axes!')
+                
+            axes = [axes[i] for i,x in enumerate(self.view) if x is None]
         
         llh_vals = self.scan_likelihood_grid(data, grid)
         
@@ -267,7 +261,7 @@ class LikelihoodGridScanner:
                                     self.ax_names, None, None).make_view(self.view)
         
         if interpolate:
-            llh_scan.interpolate()
+            llh_scan.interpolate(interpolation_axes=axes)
             
         return llh_scan
         
@@ -316,8 +310,14 @@ class LikelihoodGridScanner:
             
             return llh_scan
             
-        #elif approximation_samples>3:
-        #    pass
+        elif approximation_samples>3 and not approximation_samples%2==0:
+            
+            n = [approximation_samples if x is None else 0 for x in self.view]
+            
+            grid, axes = self.make_scanning_grid(np.array(self.truth), np.array(self.delta), np.array(n))
+            data = self.model.f(*self.truth)
+            
+            return self.scan_likelihood(data, grid=grid, axes=axes, interpolate=True)
         else:
             raise ValueError('Invalid number of approximation samples')
         
