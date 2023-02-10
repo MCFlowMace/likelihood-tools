@@ -244,7 +244,7 @@ class LikelihoodGridScanner:
         return grid, axes
 
         
-    def scan_likelihood(self, data, grid=None, axes=None, interpolate=False):
+    def scan_likelihood(self, data, grid=None, axes=None, interpolate=False, keep_scan=True):
         
         if grid is None:
             grid = self.grid
@@ -262,6 +262,8 @@ class LikelihoodGridScanner:
         
         if interpolate:
             llh_scan.interpolate(interpolation_axes=axes)
+            if not keep_scan:
+                llh_scan.llh = None
             
         return llh_scan
         
@@ -317,7 +319,7 @@ class LikelihoodGridScanner:
             grid, axes = self.make_scanning_grid(np.array(self.truth), np.array(self.delta), np.array(n))
             data = self.model.f(*self.truth)
             
-            return self.scan_likelihood(data, grid=grid, axes=axes, interpolate=True)
+            return self.scan_likelihood(data, grid=grid, axes=axes, interpolate=True, keep_scan=False)
         else:
             raise ValueError('Invalid number of approximation samples')
         
@@ -502,11 +504,14 @@ class FunctionFitter(Fitter):
             
         if llh_scan.dim==2:
             profile_llh = np.empty(llh_scan.axes[1].shape)
+            
+            dx = llh_scan.axes[0][1]-llh_scan.axes[0][0]
             x_pos = np.empty(llh_scan.axes[1].shape)
             for i, y in enumerate(llh_scan.axes[1]):
-                x = minimize(lambda x: -llh_scan.llh_f([x, y]), x0=llh_scan.truth[0], 
+                minimization = minimize(lambda x: -llh_scan.llh_f([x, y]), x0=llh_scan.truth[0], 
                                method='Powell',
-                                bounds=[[llh_scan.axes[0][0],llh_scan.axes[0][-1]]]).x[0]
+                                bounds=[[llh_scan.axes[0][0],llh_scan.axes[0][-1]]])
+                x = minimization.x[0]
                 profile_llh[i] = llh_scan.llh_f([x, y])
                 x_pos[i] = x
                 
@@ -514,8 +519,8 @@ class FunctionFitter(Fitter):
             x_pos_sort = x_pos[ind]
             profile_llh_sort = profile_llh[ind]
 
-            first = np.argmax(x_pos_sort>x_pos_sort[0])
-            last = len(x_pos) - np.argmax(x_pos_sort[::-1]<x_pos_sort[-1])
+            first = np.argmax(x_pos_sort-llh_scan.axes[0][0]>dx)
+            last = len(x_pos) - np.argmax(dx<llh_scan.axes[0][-1]-x_pos_sort[::-1])
 
             f = interp1d(x_pos_sort[first:last], profile_llh_sort[first:last], kind='cubic', bounds_error=False, fill_value='extrapolate')
 
