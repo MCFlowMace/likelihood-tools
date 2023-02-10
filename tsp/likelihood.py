@@ -197,7 +197,7 @@ class LikelihoodGridScanner:
         self.truth = truth
         self.ax_names = ax_names
         self.view = tuple(None if n>0 else 'default' for n in n_grid)
-        self.make_scanning_grid(np.array(truth), np.array(delta), np.array(n_grid))
+        self.grid = self.make_scanning_grid(np.array(truth), np.array(delta), np.array(n_grid))
         self.dim = sum([n>0 for n in n_grid])
         
     def log_likelihood(self, theta, x):
@@ -206,10 +206,11 @@ class LikelihoodGridScanner:
         
         return np.sum(log_probability, axis=-1)
         
-    def build_grid(self, list_of_vars):
+    def get_grid(self, list_of_vars):
         slices = tuple(slice(start, stop, step) for (start, stop, step) in list_of_vars)
         grid = np.mgrid[slices]
-        self.grid = np.moveaxis(grid, 0, -1)
+        #self.grid = np.moveaxis(grid, 0, -1)
+        return np.moveaxis(grid, 0, -1)
         
     def make_scanning_grid(self, truth, delta, n):
         
@@ -240,27 +241,27 @@ class LikelihoodGridScanner:
         
       #  print('l, r, s', left, right, step)
         
-        self.build_grid(zip(left, right, step))
-        
-
-
+        return self.get_grid(zip(left, right, step))
 
         
-    def scan_likelihood(self, data):
+    #~ def scan_likelihood(self, data):
 
-        grid_flattened = np.reshape(self.grid, (-1, self.grid.shape[-1]))
-        llh_vals_flat = np.empty(grid_flattened.shape[0])
+        #~ grid_flattened = np.reshape(self.grid, (-1, self.grid.shape[-1]))
+        #~ llh_vals_flat = np.empty(grid_flattened.shape[0])
 
-        for i,param in enumerate(tqdm(grid_flattened)):
-            llh_vals_flat[i] = self.log_likelihood(param, data)
+        #~ for i,param in enumerate(tqdm(grid_flattened)):
+            #~ llh_vals_flat[i] = self.log_likelihood(param, data)
 
-        llh_vals = np.reshape(llh_vals_flat, self.grid.shape[:-1])
+        #~ llh_vals = np.reshape(llh_vals_flat, self.grid.shape[:-1])
         
-        return llh_vals
+        #~ return llh_vals
         
-    def __call__(self, data, interpolate=False):
+    def scan_likelihood(self, data, grid=None, interpolate=False):
         
-        llh_vals = self.scan_likelihood(data)
+        if grid is None:
+            grid = self.grid
+        
+        llh_vals = self.scan_likelihood_grid(data, grid)
         
         llh_scan = LikelihoodScan(self.truth, llh_vals, self.axes, 
                                     self.ax_names, None, None).make_view(self.view)
@@ -269,6 +270,22 @@ class LikelihoodGridScanner:
             llh_scan.interpolate()
             
         return llh_scan
+        
+    def scan_likelihood_grid(self, data, grid):
+        
+        grid_flattened = np.reshape(grid, (-1, grid.shape[-1]))
+        llh_vals_flat = np.empty(grid_flattened.shape[0])
+
+        for i,param in enumerate(tqdm(grid_flattened)):
+            llh_vals_flat[i] = self.log_likelihood(param, data)
+
+        llh_vals = np.reshape(llh_vals_flat, grid.shape[:-1])
+        
+        return llh_vals
+        
+    def __call__(self, data, interpolate=False):
+    
+        return self.scan_likelihood(data, grid=None, interpolate=interpolate)
                                 
     def get_asimov_scan(self, approximation_samples=None):
         
