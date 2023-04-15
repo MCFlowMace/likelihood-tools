@@ -454,16 +454,24 @@ class FitResult:
     def get_resolution(self):
         
         return np.sum(self.errors, axis=-1)
-            
+    
+
+def sigma_to_confidence(n_sigma):
+    return norm.cdf(n_sigma)-norm.cdf(-n_sigma)
+
+
+def confidence_to_threshold(llh_max, confidence, parameters_of_interest):
+    return llh_max - 0.5*chi2.ppf(confidence, df=parameters_of_interest)
+
             
 class Fitter(ABC):
     
-    def __init__(self, confidence_levels):
+    def __init__(self, sigma_levels):
         
-        self.confidence_levels = confidence_levels
+        self.confidence_levels = [sigma_to_confidence(sigma) for sigma in sigma_levels]
         
-    def get_confidence_threshold(self, llh_max, confidence, parameters_of_interest):
-        return llh_max - 0.5*chi2.ppf(confidence, df=parameters_of_interest)
+   # def get_confidence_threshold(self, llh_max, confidence, parameters_of_interest):
+   #     return llh_max - 0.5*chi2.ppf(confidence, df=parameters_of_interest)
         
     def get_best_fit_with_errors(self, llh_scan, parameters_of_interest=1):
         
@@ -488,8 +496,8 @@ class Fitter(ABC):
         
 class FunctionFitter(Fitter):
     
-    def __init__(self, confidence_levels, asimov=True):
-        Fitter.__init__(self, confidence_levels)
+    def __init__(self, sigma_levels, asimov=True):
+        Fitter.__init__(self, sigma_levels)
         
         if not asimov:
             raise NotImplementedError('This fitter for non-asimov datasets is not implemented')
@@ -565,7 +573,7 @@ class FunctionFitter(Fitter):
         
         bound_vals = np.empty((len(self.confidence_levels), len(axes), 2))
         for i, level in enumerate(self.confidence_levels):
-            threshold = self.get_confidence_threshold(max_llh, level, len(axes))
+            threshold = confidence_to_threshold(max_llh, level, len(axes))
             llh_vals.append(threshold)
             bound_vals[i] = self.find_roots(llh_scan, threshold)
         
@@ -584,8 +592,8 @@ class FunctionFitter(Fitter):
                         
 class GridFitter(Fitter):
     
-    def __init__(self, confidence_levels):
-        Fitter.__init__(self, confidence_levels)
+    def __init__(self, sigma_levels):
+        Fitter.__init__(self, sigma_levels)
         
     def get_bounding_box(self, llh, level):
     
@@ -698,7 +706,7 @@ class GridFitter(Fitter):
         
         bounds_ind = np.empty((len(self.confidence_levels), len(axes), 2), dtype=np.int64)
         for i, level in enumerate(self.confidence_levels):
-            threshold = self.get_confidence_threshold(max_llh, level, len(axes))
+            threshold = confidence_to_threshold(max_llh, level, len(axes))
             llh_vals.append(threshold)
             bounds_ind[i] = self.get_bounding_box(llh, threshold)
      
