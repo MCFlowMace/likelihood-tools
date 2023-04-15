@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
 from .data import sort_for_key
+from .likelihood import confidence_to_threshold, sigma_to_confidence
 
 import seaborn as sns
 sns.set()
@@ -380,7 +381,7 @@ def make_2d_llh_plot(fit_result, scale_fig=1.0, debug=False, name=None):
 
         
         
-def make_1d_llh_plot(fit_result,  scale_fig=1.0, name=None):
+def make_1d_llh_plot(fit_result, ylim=None,  scale_fig=1.0, name=None, hlines=[]):
     
     llh_scan = fit_result.llh_scan
     
@@ -408,7 +409,12 @@ def make_1d_llh_plot(fit_result,  scale_fig=1.0, name=None):
 
         plt.plot(axes[0], llh)
 
-        ymin = min(llh)
+        if ylim is not None:
+            plt.ylim(ylim)
+
+        ylim_min, ylim_max = plt.ylim()
+        ymin = ylim_min+0.05*(ylim_max-ylim_min)
+        xmin = min(axes[0])
 
         plt.axvline(truth, color='black', ls='--', label='truth')
         
@@ -425,10 +431,14 @@ def make_1d_llh_plot(fit_result,  scale_fig=1.0, name=None):
             plt.axvspan(left_val[i], right_val[i], alpha=0.3)
             plt.text(right_val[i],ymin, f'{l*100:.0f}%', rotation='vertical')
 
+        for hline in hlines:
+            line_level = confidence_to_threshold(fit_result.llh_vals[-1], sigma_to_confidence(hline), 1)
+            plt.axhline(line_level, ls='--')
+            plt.text(xmin,line_level, f'{hline:.1f}$\sigma$')
+
         plt.ylabel('log-likelihood')
         plt.xlabel(ax_names[0])
         plt.legend(loc='upper right')
-        
                 
         if name is not None:
             plt.savefig(name+'.png', dpi=400)
