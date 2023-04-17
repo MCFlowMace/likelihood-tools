@@ -341,7 +341,7 @@ def make_2d_llh_plot(fit_result, scale_fig=1.0, debug=False, name=None):
 
         fmt = {}
         for i, l in enumerate(c_line.levels):
-            fmt[l] = f'{confidence_levels[i]*100:.0f}%'
+            fmt[l] = f'{confidence_levels[i]*100:.1f}%'
 
         ax.clabel(c_line, c_line.levels, inline=True, fmt=fmt, fontsize=10)
 
@@ -429,7 +429,7 @@ def make_1d_llh_plot(fit_result, ylim=None,  scale_fig=1.0, name=None, hlines=[]
         for i, l in enumerate(confidence_levels):
 
             plt.axvspan(left_val[i], right_val[i], alpha=0.3)
-            plt.text(right_val[i],ymin, f'{l*100:.0f}%', rotation='vertical')
+            plt.text(right_val[i],ymin, f'{l*100:.1f}%', rotation='vertical')
 
         for hline in hlines:
             line_level = confidence_to_threshold(fit_result.llh_vals[-1], sigma_to_confidence(hline), 1)
