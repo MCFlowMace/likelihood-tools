@@ -204,7 +204,8 @@ class LikelihoodGridScanner:
         self.delta = delta
         self.ax_names = ax_names
         self.view = tuple(None if n>0 else 'default' for n in n_grid)
-        self.grid, self.axes = self.make_scanning_grid(np.array(truth), np.array(delta), np.array(n_grid))
+        delta_np = np.array([[a,a] if type(a) is not list else a for a in delta])
+        self.grid, self.axes = self.make_scanning_grid(np.array(truth), delta_np, np.array(n_grid))
         self.dim = sum([n>0 for n in n_grid])
         
     def log_likelihood(self, theta, x):
@@ -232,10 +233,10 @@ class LikelihoodGridScanner:
         delta[zeros] = 0
         n[zeros] = 1
         
-        left = truth - delta
-        right = truth + delta
+        left = truth - delta[...,0]
+        right = truth + delta[...,1]
         step = np.ones_like(truth)
-        step[~zeros] = 2*delta[~zeros]/(n[~zeros]-1)
+        step[~zeros] = (delta[~zeros,0]+delta[~zeros,1])/(n[~zeros]-1)
         
         right = right + step
         axes = self.get_axes(zip(left, right, step))
