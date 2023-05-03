@@ -272,7 +272,8 @@ class LikelihoodGridScanner:
         grid_flattened = np.reshape(grid, (-1, grid.shape[-1]))
         llh_vals_flat = np.empty(grid_flattened.shape[0])
 
-        for i,param in enumerate(tqdm(grid_flattened)):
+        for i, param in enumerate(pbar:= tqdm(grid_flattened)):
+            pbar.set_postfix_str(str(self.get_param_view(param)))
             llh_vals_flat[i] = self.log_likelihood(param, data)
 
         llh_vals = np.reshape(llh_vals_flat, grid.shape[:-1])
