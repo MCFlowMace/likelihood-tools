@@ -179,11 +179,13 @@ class LikelihoodScan:
         return np.searchsorted(ax, val)
         
     def interpolate(self):
+
+        axes = self.axes
         
-        if len(self.axes)>2:
+        if len(axes)>2:
             raise ValueError('Can only interpolate 1D and 2D scans')
             
-        if len(self.axes)==2:
+        if len(axes)==2:
             interpolation = interp2d(axes[0], axes[1], self.llh.transpose(), kind='cubic', bounds_error=False)
             self.llh_f = lambda x: interpolation(x[0], x[1]).transpose()
         else:
@@ -235,21 +237,19 @@ class LikelihoodScanner(ABC):
 class LikelihoodGridScanner(LikelihoodScanner):
     
     def __init__(self, truth, delta, n_grid, ax_names, model):
-        
-        self.model = model
-        self.truth = truth
+        LikelihoodScanner.__init__(self, truth, ax_names, model)
+
         self.delta = delta
-        self.ax_names = ax_names
-        self.view = tuple(None if n>0 else 'default' for n in n_grid)
+        self.view_ = tuple(None if n>0 else 'default' for n in n_grid)
         delta_np = np.array([[a,a] if type(a) is not list else a for a in delta])
         self.grid, self.axes = self.make_scanning_grid(np.array(truth), delta_np, np.array(n_grid))
-        self.dim = sum([n>0 for n in n_grid])
+        self.dim_ = sum([n>0 for n in n_grid])
 
     def view(self):
-        return self.view
+        return self.view_
 
     def dim(self):
-        return self.dim
+        return self.dim_
         
     def get_grid(self, list_of_vars):
         slices = tuple(slice(start, stop, step) for (start, stop, step) in list_of_vars)
@@ -280,17 +280,16 @@ class LikelihoodGridScanner(LikelihoodScanner):
         grid = self.get_grid(zip(left, right, step))
         
         return grid, axes
-
         
     def scan_likelihood(self, data, interpolate=False):
         
-        llh_vals = self.scan_likelihood_grid(data, grid)
+        llh_vals = self.scan_likelihood_grid(data, self.grid)
         
         llh_scan = LikelihoodScan(self.truth, llh_vals, self.axes, 
-                                    self.ax_names, None, None).make_view(self.view)
+                                    self.ax_names, None, None).make_view(self.view())
         
         if interpolate:
-            llh_scan.interpolate(interpolation_axes=axes)
+            llh_scan.interpolate()
             
         return llh_scan
         
