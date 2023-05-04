@@ -277,7 +277,7 @@ class LikelihoodGridScanner(LikelihoodScanner):
         LikelihoodScanner.__init__(self, truth, delta, n_eval, ax_names, model)
         self.scanning_grid = LikelihoodGridScanner.make_scanning_grid(truth, delta, n_grid)
         self.scanning_axes = LikelihoodScanner.make_axes(truth, delta, n_grid)
-        self.interpolate = n_grid!=n_eval
+        #self.interpolate = n_grid!=n_eval
 
     def get_grid(list_of_vars):
         slices = tuple(slice(start, stop, step) for (start, stop, step) in list_of_vars)
@@ -295,10 +295,10 @@ class LikelihoodGridScanner(LikelihoodScanner):
         llh_scan = LikelihoodScan(self.truth, llh_vals, self.axes, 
                                     self.ax_names, None, None).make_view(self.view())
         
-        if self.interpolate:
-            axes = [self.scanning_axes[i] for i,x in enumerate(self.view()) if x is None]
-            llh_scan.interpolate(interpolation_axes=axes)
-            llh_scan.llh = llh_scan.llh_f(llh_scan.axes)
+        #if self.interpolate:
+        axes = [self.scanning_axes[i] for i,x in enumerate(self.view()) if x is None]
+        llh_scan.interpolate(interpolation_axes=axes)
+        llh_scan.llh = llh_scan.llh_f(llh_scan.axes)
 
         return llh_scan
         
