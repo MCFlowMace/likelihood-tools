@@ -563,9 +563,8 @@ class FunctionFitter(Fitter):
                                     
             profile_llh_scan = llh_scan.make_view(view)
             
-            profile_llh_scan.llh = profile_llh
-            
             profile_llh_scan.llh_f = lambda x: f(x[0])
+            profile_llh_scan.llh = profile_llh_scan.llh_f(profile_llh_scan.axes)
             
         else:
             profile_llh_scan = llh_scan
@@ -713,6 +712,9 @@ class GridFitter(Fitter):
         profile_llh_scan = llh_scan.make_view(view)
         
         profile_llh_scan.llh = profile_llh
+
+        if profile_llh_scan.llh_f is not None:
+            profile_llh_scan.interpolate()
         
         return profile_llh_scan
         
