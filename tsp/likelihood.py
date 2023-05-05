@@ -367,6 +367,9 @@ class AdaptiveLikelihoodScanner(LikelihoodScanner):
             return adaptive.Learner2D(llh_f, bounds=[(view_ax[0][0], view_ax[0][-1]),
                                                                (view_ax[1][0], view_ax[1][-1])])
         
+        if self.dim()>2:
+            raise NotImplementedError('The case for more than 2 dimensions is not implemented yet for the AdaptiveLikelihoodScanner')
+        
         #nd case missing
 
     def transform_interpolator_param(param):
