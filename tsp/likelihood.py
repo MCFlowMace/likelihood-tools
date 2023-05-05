@@ -12,6 +12,7 @@ from scipy.stats import chi2
 from tqdm import tqdm
 from scipy.interpolate import interp1d, interp2d
 from scipy.optimize import root_scalar, minimize
+import adaptive
 
 from abc import ABC, abstractmethod
 
@@ -211,6 +212,9 @@ class LikelihoodScanner(ABC):
 
     def view(self):
         return self.view_
+    
+    def get_view_ax(self):
+        return [self.axes[i] for i,x in enumerate(self.view()) if x is None]
 
     def dim(self):
         return self.dim_
@@ -314,6 +318,41 @@ class LikelihoodGridScanner(LikelihoodScanner):
         llh_vals = np.reshape(llh_vals_flat, grid.shape[:-1])
         
         return llh_vals
+    
+
+class AdaptiveLikelihoodScanner(LikelihoodScanner):
+    
+    def __init__(self, truth, delta, n_eval, ax_names, model, loss_goal):
+        LikelihoodScanner.__init__(self, truth, delta, n_eval, ax_names, model)
+        self.loss_goal = loss_goal
+
+    def get_learner(self):
+        view_ax = self.get_view_ax()
+
+        if self.dim()==1:
+            return adaptive.Learner1D(self.log_likelihood, bounds=(view_ax[0][0], view_ax[0][-1]))
+
+        if self.dim()==2:
+            return adaptive.Learner2D(self.log_likelihood, bounds=[(view_ax[0][0], view_ax[0][-1]),
+                                                               (view_ax[1][0], view_ax[1][-1])])
+        
+        #nd case missing
+
+
+    def scan_likelihood(self, data):
+
+        learner = self.get_learner()
+        
+        runner = adaptive.BlockingRunner(learner, loss_goal=self.loss_goal)
+
+        llh_scan = LikelihoodScan(self.truth, None, self.axes, 
+                                    self.ax_names, None, None).make_view(self.view())
+
+        llh_scan.llh_f = lambda x: learner.interpolator()(*x)[...,0]
+        llh_scan.llh = llh_scan.llh_f(llh_scan.axes)
+
+        return llh_scan
+        
 
 """                    
     def get_asimov_scan(self, approximation_samples=None):
