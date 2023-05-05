@@ -286,13 +286,15 @@ class LikelihoodScanner(ABC):
                     fixed_vals.append(x)
 
         def f(y):
+            fixed_ind_ = fixed_ind.copy()
+            fixed_vals_ = fixed_vals.copy()
             i = 0
             l = []
             for j in range(len(self.view())):
-                if len(fixed_ind)>0 and j==fixed_ind[0]:
-                    l.append(fixed_vals[0])
-                    fixed_vals.pop(0)
-                    fixed_ind.pop(0)
+                if len(fixed_ind_)>0 and j==fixed_ind_[0]:
+                    l.append(fixed_vals_[0])
+                    fixed_vals_.pop(0)
+                    fixed_ind_.pop(0)
                 else:
                     l.append(y[i])
                     i+=1
