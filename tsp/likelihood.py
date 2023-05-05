@@ -358,12 +358,12 @@ class AdaptiveLikelihoodScanner(LikelihoodScanner):
         view_ax = self.get_view_ax()
         view_param_function = self.get_view_param_function()
 
-        llh_f = lambda x: self.log_likelihood(view_param_function(x), data)
-
         if self.dim()==1:
+            llh_f = lambda x: self.log_likelihood(view_param_function([x]), data)
             return adaptive.Learner1D(llh_f, bounds=(view_ax[0][0], view_ax[0][-1]))
 
         if self.dim()==2:
+            llh_f = lambda x: self.log_likelihood(view_param_function(x), data)
             return adaptive.Learner2D(llh_f, bounds=[(view_ax[0][0], view_ax[0][-1]),
                                                                (view_ax[1][0], view_ax[1][-1])])
         
