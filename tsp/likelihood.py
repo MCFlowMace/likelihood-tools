@@ -352,29 +352,38 @@ class AdaptiveLikelihoodScanner(LikelihoodScanner):
         LikelihoodScanner.__init__(self, truth, delta, n_eval, ax_names, model)
         self.loss_goal = loss_goal
 
-    def get_learner(self):
+    def get_learner(self, data):
         view_ax = self.get_view_ax()
+        view_param_function = self.get_view_param_function()
+
+        llh_f = lambda x: self.log_likelihood(view_param_function(x), data)
 
         if self.dim()==1:
-            return adaptive.Learner1D(self.log_likelihood, bounds=(view_ax[0][0], view_ax[0][-1]))
+            return adaptive.Learner1D(llh_f, bounds=(view_ax[0][0], view_ax[0][-1]))
 
         if self.dim()==2:
-            return adaptive.Learner2D(self.log_likelihood, bounds=[(view_ax[0][0], view_ax[0][-1]),
+            return adaptive.Learner2D(llh_f, bounds=[(view_ax[0][0], view_ax[0][-1]),
                                                                (view_ax[1][0], view_ax[1][-1])])
         
         #nd case missing
 
+    def transform_interpolator_param(param):
+        return np.meshgrid(*(param[::-1]))[::-1]
+    
+    def transform_interpolator(learner):
+        return lambda x: learner.interpolator()(*AdaptiveLikelihoodScanner.transform_interpolator_param(x))[...,0]
 
     def scan_likelihood(self, data):
 
-        learner = self.get_learner()
-        
+        learner = self.get_learner(data)
+
         runner = adaptive.BlockingRunner(learner, loss_goal=self.loss_goal)
 
         llh_scan = LikelihoodScan(self.truth, None, self.axes, 
                                     self.ax_names, None, None).make_view(self.view())
+        
+        llh_scan.llh_f = AdaptiveLikelihoodScanner.transform_interpolator(learner)
 
-        llh_scan.llh_f = lambda x: learner.interpolator()(*x)[...,0]
         llh_scan.llh = llh_scan.llh_f(llh_scan.axes)
 
         return llh_scan
