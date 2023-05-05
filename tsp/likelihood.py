@@ -274,6 +274,32 @@ class LikelihoodScanner(ABC):
         data = self.model.f(*self.truth)
         return self(data)
     
+    def get_view_param_function(self):
+        fixed_ind = []
+        fixed_vals = []
+        for i, x in enumerate(self.view()):
+            if x is not None:
+                fixed_ind.append(i)
+                if x=='default':
+                    fixed_vals.append(self.truth[i])
+                else:
+                    fixed_vals.append(x)
+
+        def f(y):
+            i = 0
+            l = []
+            for j in range(len(self.view())):
+                if len(fixed_ind)>0 and j==fixed_ind[0]:
+                    l.append(fixed_vals[0])
+                    fixed_vals.pop(0)
+                    fixed_ind.pop(0)
+                else:
+                    l.append(y[i])
+                    i+=1
+
+            return l
+        
+        return f
 
 class LikelihoodGridScanner(LikelihoodScanner):
     
