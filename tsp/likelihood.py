@@ -306,10 +306,11 @@ class LikelihoodScanner(ABC):
 
 class LikelihoodGridScanner(LikelihoodScanner):
     
-    def __init__(self, truth, delta, n_eval, ax_names, model, n_grid):
+    def __init__(self, truth, delta, n_eval, ax_names, model, n_grid, max_workers=None):
         LikelihoodScanner.__init__(self, truth, delta, n_eval, ax_names, model)
         self.scanning_grid = LikelihoodGridScanner.make_scanning_grid(truth, delta, n_grid)
         self.scanning_axes = LikelihoodScanner.make_axes(truth, delta, n_grid)
+        self.max_workers = max_workers
         #self.interpolate = n_grid!=n_eval
 
     def get_grid(list_of_vars):
@@ -344,7 +345,7 @@ class LikelihoodGridScanner(LikelihoodScanner):
         ind = np.arange(len(grid_flattened))
         llh_vals_flat = np.empty(grid_flattened.shape[0])
 
-        with cf.ProcessPoolExecutor() as executor:
+        with cf.ProcessPoolExecutor(max_workers=self.max_workers) as executor:
 
                 futures = [executor.submit(self.job_function, (d,data))
                         for d in zip(grid_flattened, ind)]
