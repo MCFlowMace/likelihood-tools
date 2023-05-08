@@ -377,6 +377,32 @@ class AdaptiveLikelihoodScanner(LikelihoodScanner):
     
     def transform_interpolator(learner):
         return lambda x: learner.interpolator()(*AdaptiveLikelihoodScanner.transform_interpolator_param(x))[...,0]
+    
+    def learner_to_llh_scan(self, learner):
+
+        if self.dim()==2:
+
+            llh_scan = LikelihoodScan(self.truth, None, self.axes, 
+                                    self.ax_names, None, None).make_view(self.view())
+        
+            llh_scan.llh_f = AdaptiveLikelihoodScanner.transform_interpolator(learner)
+
+            llh_scan.llh = llh_scan.llh_f(llh_scan.axes)
+
+            return llh_scan
+        
+        if self.dim()==1:
+            data = learner.to_numpy()
+            llh_scan = LikelihoodScan(self.truth, None, self.axes, 
+                                    self.ax_names, None, None).make_view(self.view())
+            
+            llh_scan.llh = data[:,1]
+            
+            llh_scan.interpolate(interpolation_axes=(data[:,0],))
+            llh_scan.llh = llh_scan.llh_f(llh_scan.axes)
+
+            return llh_scan
+            
 
     def scan_likelihood(self, data):
 
@@ -384,14 +410,7 @@ class AdaptiveLikelihoodScanner(LikelihoodScanner):
 
         runner = adaptive.BlockingRunner(learner, loss_goal=self.loss_goal)
 
-        llh_scan = LikelihoodScan(self.truth, None, self.axes, 
-                                    self.ax_names, None, None).make_view(self.view())
-        
-        llh_scan.llh_f = AdaptiveLikelihoodScanner.transform_interpolator(learner)
-
-        llh_scan.llh = llh_scan.llh_f(llh_scan.axes)
-
-        return llh_scan
+        return self.learner_to_llh_scan(learner)
         
 
 """                    
