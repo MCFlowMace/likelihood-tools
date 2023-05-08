@@ -13,6 +13,7 @@ from tqdm import tqdm
 from scipy.interpolate import interp1d, interp2d
 from scipy.optimize import root_scalar, minimize
 import adaptive
+import concurrent.futures as cf
 
 from abc import ABC, abstractmethod
 
@@ -333,15 +334,25 @@ class LikelihoodGridScanner(LikelihoodScanner):
         llh_scan.llh = llh_scan.llh_f(llh_scan.axes)
 
         return llh_scan
+    
+    def job_function(self, x):
+        return self.log_likelihood(x[0][0], x[1]), x[0][1]
         
     def scan_likelihood_grid(self, data, grid):
         
         grid_flattened = np.reshape(grid, (-1, grid.shape[-1]))
+        ind = np.arange(len(grid_flattened))
         llh_vals_flat = np.empty(grid_flattened.shape[0])
 
-        for i, param in enumerate(pbar:= tqdm(grid_flattened)):
-            pbar.set_postfix_str(str(self.get_param_view(param)))
-            llh_vals_flat[i] = self.log_likelihood(param, data)
+        with cf.ProcessPoolExecutor() as executor:
+
+                futures = [executor.submit(self.job_function, (d,data))
+                        for d in zip(grid_flattened, ind)]
+                        
+                for future in (pbar := tqdm(cf.as_completed(futures), total=len(futures))):
+                    result = future.result()
+                    pbar.set_postfix_str(str(self.get_param_view(grid_flattened[result[1]])))
+                    llh_vals_flat[result[1]] = result[0]
 
         llh_vals = np.reshape(llh_vals_flat, grid.shape[:-1])
         
