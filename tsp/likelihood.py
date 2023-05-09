@@ -14,7 +14,6 @@ from scipy.interpolate import interp1d, interp2d
 from scipy.optimize import root_scalar, minimize
 import adaptive
 import concurrent.futures as cf
-
 from abc import ABC, abstractmethod
 
 class LikelihoodModel(ABC):
@@ -362,9 +361,10 @@ class LikelihoodGridScanner(LikelihoodScanner):
 
 class AdaptiveLikelihoodScanner(LikelihoodScanner):
     
-    def __init__(self, truth, delta, n_eval, ax_names, model, loss_goal):
+    def __init__(self, truth, delta, n_eval, ax_names, model, loss_goal, debug=False):
         LikelihoodScanner.__init__(self, truth, delta, n_eval, ax_names, model)
         self.loss_goal = loss_goal
+        self.debug = debug
 
     def get_learner(self, data):
         view_ax = self.get_view_ax()
@@ -421,6 +421,20 @@ class AdaptiveLikelihoodScanner(LikelihoodScanner):
         learner = self.get_learner(data)
 
         runner = adaptive.BlockingRunner(learner, loss_goal=self.loss_goal)
+
+        if self.debug:
+
+            import holoviews as hv
+            hv.extension('bokeh')
+            from bokeh.plotting import show
+
+            if self.dim()==2:
+                plot = learner.plot(tri_alpha=0.3)
+            else:
+                plot = learner.plot(scatter_or_line='scatter')
+
+            show(hv.render(plot))
+            print(f'Evaluated llh at {learner.npoints} points')
 
         return self.learner_to_llh_scan(learner)
         
