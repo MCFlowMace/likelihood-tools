@@ -13,23 +13,27 @@ with open("README.md", "r") as fh:
 required = [
     "numpy",
     "scipy",
-    "uproot"
+    "adaptive",
+    "tqdm",
+    "matplotlib",
+    "seaborn",
+    "holoviews",
+    "bokeh"
 ]
 
 setuptools.setup(
-    name="tsp",
-    version="0.2.0",
+    name="likelihoodtools",
+    version="0.1.0",
     author="Florian Thomas",
     author_email="fthomas@uni-mainz.de",
-    description="https://github.com/MCFlowMace/thesis-signal-processing",
+    description="https://github.com/MCFlowMace/likelihood-tools",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/MCFlowMace/thesis-signal-processing",
+    url="https://github.com/MCFlowMace/likelihood-tools",
     packages=setuptools.find_packages(),
-    #package_data={'cresana': ['hexbug/**/**/*', 'hexbug/**/*', 'settings/*']},
     classifiers=[
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.5',
+    python_requires='>=3.8',
     install_requires=required)
