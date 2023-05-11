@@ -376,19 +376,28 @@ class AdaptiveLikelihoodScanner(LikelihoodScanner):
 
         if self.dim()==2:
             llh_f = lambda x: self.log_likelihood(view_param_function(x), data)
-            return adaptive.Learner2D(llh_f, bounds=[(view_ax[0][0], view_ax[0][-1]),
+            learner = adaptive.Learner2D(llh_f, bounds=[(view_ax[0][0], view_ax[0][-1]),
                                                                (view_ax[1][0], view_ax[1][-1])])
+
+            return learner
         
         if self.dim()>2:
             raise NotImplementedError('The case for more than 2 dimensions is not implemented yet for the AdaptiveLikelihoodScanner')
         
         #nd case missing
 
+    def rescale_param(param, learner):
+        param_re = []
+        for i, p in enumerate(param):
+            dp = learner.bounds[i][1]-learner.bounds[i][0]
+            param_re.append((p-learner.bounds[i][0])/dp-0.5)
+        return tuple(param_re)
+
     def transform_interpolator_param(param):
         return np.meshgrid(*(param[::-1]))[::-1]
     
     def transform_interpolator(learner):
-        return lambda x: learner.interpolator()(*AdaptiveLikelihoodScanner.transform_interpolator_param(x))[...,0]
+        return lambda x: learner.interpolator(scaled=True)(*AdaptiveLikelihoodScanner.transform_interpolator_param(AdaptiveLikelihoodScanner.rescale_param(x, learner)))[...,0]
     
     def learner_to_llh_scan(self, learner):
 
