@@ -361,10 +361,11 @@ class LikelihoodGridScanner(LikelihoodScanner):
 
 class AdaptiveLikelihoodScanner(LikelihoodScanner):
     
-    def __init__(self, truth, delta, n_eval, ax_names, model, loss_goal, debug=False):
+    def __init__(self, truth, delta, n_eval, ax_names, model, loss_goal, debug=False, aspect_ratio=1.):
         LikelihoodScanner.__init__(self, truth, delta, n_eval, ax_names, model)
         self.loss_goal = loss_goal
         self.debug = debug
+        self.aspect_ratio = aspect_ratio
 
     def get_learner(self, data):
         view_ax = self.get_view_ax()
@@ -376,9 +377,10 @@ class AdaptiveLikelihoodScanner(LikelihoodScanner):
 
         if self.dim()==2:
             llh_f = lambda x: self.log_likelihood(view_param_function(x), data)
+            
             learner = adaptive.Learner2D(llh_f, bounds=[(view_ax[0][0], view_ax[0][-1]),
                                                                (view_ax[1][0], view_ax[1][-1])])
-
+            learner.aspect_ratio=self.aspect_ratio
             return learner
         
         if self.dim()>2:
