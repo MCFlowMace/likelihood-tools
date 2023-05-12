@@ -11,6 +11,7 @@ from scipy.stats import norm
 from scipy.stats import chi2
 from tqdm import tqdm
 from scipy.interpolate import interp1d, interp2d
+from scipy.interpolate import CloughTocher2DInterpolator
 from scipy.optimize import root_scalar, minimize
 import adaptive
 import concurrent.futures as cf
@@ -361,11 +362,12 @@ class LikelihoodGridScanner(LikelihoodScanner):
 
 class AdaptiveLikelihoodScanner(LikelihoodScanner):
     
-    def __init__(self, truth, delta, n_eval, ax_names, model, loss_goal, debug=False, aspect_ratio=1.):
+    def __init__(self, truth, delta, n_eval, ax_names, model, loss_goal, debug=False, aspect_ratio=1., cubic_spline=False):
         LikelihoodScanner.__init__(self, truth, delta, n_eval, ax_names, model)
         self.loss_goal = loss_goal
         self.debug = debug
         self.aspect_ratio = aspect_ratio
+        self.cubic_spline=cubic_spline
 
     def get_learner(self, data):
         view_ax = self.get_view_ax()
@@ -402,6 +404,14 @@ class AdaptiveLikelihoodScanner(LikelihoodScanner):
     def transform_interpolator(learner):
         return lambda x: learner.interpolator(scaled=True)(*AdaptiveLikelihoodScanner.transform_interpolator_param(AdaptiveLikelihoodScanner.rescale_param(x, learner)))[...,0]
     
+    def get_cubic_interpolator(learner):
+        pos = np.array(list(learner.data.keys()))
+        values = np.array(list(learner.data.values()))
+
+        ip = CloughTocher2DInterpolator(pos, values)
+
+        return lambda x: ip(*AdaptiveLikelihoodScanner.transform_interpolator_param(x))
+    
     def learner_to_llh_scan(self, learner):
 
         if self.dim()==2:
@@ -409,7 +419,10 @@ class AdaptiveLikelihoodScanner(LikelihoodScanner):
             llh_scan = LikelihoodScan(self.truth, None, self.axes, 
                                     self.ax_names, None, None).make_view(self.view())
         
-            llh_scan.llh_f = AdaptiveLikelihoodScanner.transform_interpolator(learner)
+            if self.cubic_spline:
+                llh_scan.llh_f = AdaptiveLikelihoodScanner.get_cubic_interpolator(learner)
+            else:
+                llh_scan.llh_f = AdaptiveLikelihoodScanner.transform_interpolator(learner)
 
             llh_scan.llh = llh_scan.llh_f(llh_scan.axes)
 
