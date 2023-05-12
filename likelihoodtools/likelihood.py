@@ -390,8 +390,9 @@ class AdaptiveLikelihoodScanner(LikelihoodScanner):
 
     def rescale_param(param, learner):
         param_re = []
+        eps = 1e-13
         for i, p in enumerate(param):
-            dp = learner.bounds[i][1]-learner.bounds[i][0]
+            dp = learner.bounds[i][1]-learner.bounds[i][0] + eps
             param_re.append((p-learner.bounds[i][0])/dp-0.5)
         return tuple(param_re)
 
