@@ -670,16 +670,23 @@ class Fitter(ABC):
    # def get_confidence_threshold(self, llh_max, confidence, parameters_of_interest):
    #     return llh_max - 0.5*chi2.ppf(confidence, df=parameters_of_interest)
         
-    def get_best_fit_with_errors(self, llh_scan, parameters_of_interest=1):
+    def get_best_fit_with_errors(self, llh_scan, parameters_of_interest=1, scaling_factor=1.):
         
         axes = llh_scan.axes
         
         if not 0 < parameters_of_interest <= len(axes):
             raise ValueError('parameters_of_interest has to be at least 1 and cannot exceed the total number of parameters')
         
-        profile_llh_scan = self.make_profile_llh(llh_scan, parameters_of_interest)
+        profile_llh_scan = self.make_scaled_llh(llh_scan, parameters_of_interest, scaling_factor) # self.make_profile_llh(llh_scan, parameters_of_interest)
         
         return self.get_best_fit_with_errors_profile(profile_llh_scan)
+
+    def make_scaled_llh(self, llh_scan, parameters_of_interest, scaling_factor):
+        profile_llh = self.make_profile_llh(llh_scan, parameters_of_interest)
+        profile_llh.llh = profile_llh.llh*scaling_factor
+        f_cache = profile_llh.llh_f
+        profile_llh.llh_f = lambda x:f_cache(x)*scaling_factor
+        return profile_llh
         
     @abstractmethod
     def make_profile_llh(self, llh_scan, parameters_of_interest):
