@@ -29,6 +29,20 @@ class LikelihoodModel(ABC):
     @abstractmethod
     def gen_noise(self, n):
         pass
+
+    def log_likelihood_function(self, x):
+        
+        def f(theta):
+
+            log_probability = self.log_likelihood_pdf()(theta, x)
+        
+            return np.sum(log_probability, axis=-1)
+        
+        return f
+    
+    def asimov_log_likelihood_function(self, truth):
+        x = self.f(*truth)
+        return self.log_likelihood_function(x)
     
 class GaussianLikelihoodModel(LikelihoodModel):
     
@@ -258,9 +272,11 @@ class LikelihoodScanner(ABC):
         
     def log_likelihood(self, theta, x):
         
-        log_probability = self.model.log_likelihood_pdf()(theta, x)
+        #log_probability = self.model.log_likelihood_pdf()(theta, x)
         
-        return np.sum(log_probability, axis=-1)
+        #return np.sum(log_probability, axis=-1)
+    
+        return self.model.log_likelihood_function(x)(theta)
     
     def __call__(self, data):
     
