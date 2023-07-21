@@ -66,6 +66,31 @@ class GaussianLikelihoodModel(LikelihoodModel):
         else:
             return np.random.normal(loc=0, scale=self.sigma, size=n)
 
+class ZeroPhaseGLikelihoodModel(LikelihoodModel):
+    
+    def __init__(self, f, sigma):
+        LikelihoodModel.__init__(self, f)
+        self.sigma = sigma/np.sqrt(2)
+        
+    def log_likelihood_pdf(self):
+        return None
+        
+    def gen_noise(self, n):
+        return None
+    
+    def log_likelihood_function(self, x):
+        
+        def f(theta):
+
+            x2 = np.sum(x*np.conjugate(x), axis=-1).real
+            ftheta = self.f(*theta)
+            f2 = np.sum(ftheta*np.conjugate(ftheta), axis=-1).real
+            xf = np.abs(np.sum(ftheta*np.conjugate(x), axis=-1))
+
+            return - 0.5/self.sigma**2*(x2 + f2 - 2*xf)
+        
+        return f
+
 def get_best_fit_vals(scan_vals, ll_vals):
     
     max_ind = np.argmax(ll_vals)
