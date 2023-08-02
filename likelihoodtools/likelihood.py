@@ -11,7 +11,7 @@ from scipy.stats import norm
 from scipy.stats import chi2
 from tqdm import tqdm
 from scipy.interpolate import interp1d, interp2d
-from scipy.interpolate import CloughTocher2DInterpolator
+from scipy.interpolate import CloughTocher2DInterpolator, RegularGridInterpolator
 from scipy.optimize import root_scalar, minimize
 import adaptive
 import concurrent.futures as cf
@@ -227,7 +227,9 @@ class LikelihoodScan:
             axes = interpolation_axes
         
         if len(axes)>2:
-            raise ValueError('Can only interpolate 1D and 2D scans')
+            print(axes)
+            #raise ValueError('Can only interpolate 1D and 2D scans')
+            self.llh_f = RegularGridInterpolator(axes, self.llh, method='cubic', bounds_error=False, fill_value=None)
             
         if len(axes)==2:
             interpolation = interp2d(axes[0], axes[1], self.llh.transpose(), kind='cubic', bounds_error=False)
