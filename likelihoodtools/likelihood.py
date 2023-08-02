@@ -227,11 +227,10 @@ class LikelihoodScan:
             axes = interpolation_axes
         
         if len(axes)>2:
-            print(axes)
-            #raise ValueError('Can only interpolate 1D and 2D scans')
+            axes = tuple(axes)
             self.llh_f = RegularGridInterpolator(axes, self.llh, method='cubic', bounds_error=False, fill_value=None)
             
-        if len(axes)==2:
+        elif len(axes)==2:
             interpolation = interp2d(axes[0], axes[1], self.llh.transpose(), kind='cubic', bounds_error=False)
             self.llh_f = lambda x: interpolation(x[0], x[1]).transpose()
         else:
