@@ -283,7 +283,7 @@ class LikelihoodScanner(ABC):
         step = np.ones_like(truth)
         step[~zeros] = (delta[~zeros,0]+delta[~zeros,1])/(n[~zeros]-1)
         
-        right = right + step
+        right = right + step*0.1
 
         return left, right, step
         
