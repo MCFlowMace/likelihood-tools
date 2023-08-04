@@ -973,14 +973,6 @@ class GridFitter(Fitter):
         return FitResult(best_fit[0,:,0], errors, self.confidence_levels, 
                         np.array(llh_vals), llh_scan)
 
-
-def add_noise(data, likelihood_model):
-    
-    n = data.size
-    
-    noise = likelihood_model.gen_noise(n)
-    
-    return data + noise.reshape(data.shape)
     
 
 def get_parameter_resolution(theta, likelihood_model, n_repeat, 
