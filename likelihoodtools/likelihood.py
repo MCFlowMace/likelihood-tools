@@ -388,6 +388,8 @@ class LikelihoodGridScanner(LikelihoodScanner):
 
         with cf.ProcessPoolExecutor(max_workers=self.max_workers) as executor:
 
+            print(f'Using {executor._max_workers} parallel processes')
+
             futures = [executor.submit(self.job_function, (d,data))
                     for d in zip(grid_flattened, ind)]
                     
