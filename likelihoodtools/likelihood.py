@@ -14,7 +14,12 @@ from scipy.interpolate import interp1d, interp2d
 from scipy.interpolate import CloughTocher2DInterpolator, RegularGridInterpolator
 from scipy.optimize import root_scalar, minimize
 import adaptive
-import concurrent.futures as cf
+#import concurrent.futures as cf
+
+import dill
+dill.settings['recurse'] = True
+
+from multiprocess import Pool
 from abc import ABC, abstractmethod
 
 class LikelihoodModel(ABC):
@@ -386,15 +391,13 @@ class LikelihoodGridScanner(LikelihoodScanner):
         llh_vals_flat = np.empty(grid_flattened.shape[0])
         ind = np.arange(len(grid_flattened))
 
-        with cf.ProcessPoolExecutor(max_workers=self.max_workers) as executor:
+        f = lambda x: self.job_function((x, data))
 
-            print(f'Using {executor._max_workers} parallel processes')
+        with Pool(processes=self.max_workers) as p:
 
-            futures = [executor.submit(self.job_function, (d,data))
-                    for d in zip(grid_flattened, ind)]
-                    
-            for future in (pbar := tqdm(cf.as_completed(futures), total=len(futures))):
-                result = future.result()
+            print(f'Using {p._processes} parallel processes')
+
+            for result in (pbar := tqdm(p.imap_unordered(func=f, iterable=zip(grid_flattened, ind)), total=len(grid_flattened))):
                 pbar.set_postfix_str(str(self.get_param_view(grid_flattened[result[1]])))
                 llh_vals_flat[result[1]] = result[0]
 

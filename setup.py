@@ -18,7 +18,9 @@ required = [
     "matplotlib",
     "seaborn",
     "holoviews",
-    "bokeh"
+    "bokeh",
+    "dill>=0.3.7",
+    "multiprocess"
 ]
 
 setuptools.setup(
