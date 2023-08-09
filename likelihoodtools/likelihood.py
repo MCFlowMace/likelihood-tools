@@ -231,9 +231,32 @@ class LikelihoodScan:
         else:
             axes = interpolation_axes
         
+        
         if len(axes)>2:
+            #in theory RegularGridInterpolator should be used for all cases
+            #but as of Scipy 1.11 it is significantly slower than the deprecated interp1d and interp2d routines
+            #which make use of highly optimized FORTRAN implementations. Right now there doesn't seem to be
+            #an adequate alternative for interpolation with more than 2 dimensions. 
+            #this PR https://github.com/scipy/scipy/pull/18492 suggests however that the SciPy team is working on something
+            #so maybe in the future the RegularGridInterpolator gets a performance boost and then it should be considered
+            #to make it the default for all cases here
+
             axes = tuple(axes)
-            self.llh_f = RegularGridInterpolator(axes, self.llh, method='cubic', bounds_error=False, fill_value=None)
+            interpolation =  RegularGridInterpolator(axes, self.llh, method='cubic', bounds_error=False, fill_value=None)
+
+            #modified interpolation function to reformat the input such that the final
+            #function's interface behaves in a similar way as interp1d and interp2d do
+            def interp_mod(x):
+                x_np = [np.array([ax]) if np.isscalar(ax) else ax for ax in x]
+                do_grid = all([len(xi)==1 for xi in x_np])
+
+                if not do_grid:
+                    xx = np.meshgrid(*x, indexing='ij')
+                else:
+                    xx = x_np
+
+                return interpolation(tuple(xx))
+            self.llh_f = interp_mod
             
         elif len(axes)==2:
             interpolation = interp2d(axes[0], axes[1], self.llh.transpose(), kind='cubic', bounds_error=False)
