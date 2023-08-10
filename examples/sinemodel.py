@@ -18,7 +18,7 @@ def sin_model(A, w, phi, b, x):
 #does not work if defined in notebook
 #but can be imported to notebook or can live at the top of a script like demonstrated here
 def sin_model_data(A, w, phi, b):
-    x = np.linspace(0, 1000, 5000)
+    x = np.linspace(0, 10, 50)
     return sin_model(A, w, phi, b, x)
 
 
@@ -34,25 +34,30 @@ def smoothing(a=1., x0=0., end=False):
 
 class ChirpModel:
 
-    def __init__(self, sr, tau, spacing_samples=300000, smoothing_factor=None):
+    def __init__(self, sr, n_samples, smoothing_factor=None): # tau, spacing_samples=300000, smoothing_factor=None):
         self.sr = sr
         self.dt = 1/sr
-        self.tau = tau
-        self.n_samples = int(tau/self.dt) + spacing_samples
+        #self.tau = tau
+        self.n_samples = n_samples # int(tau/self.dt) + spacing_samples
         self.smoothing_factor = smoothing_factor
 
-    def __call__(self, A, w, alpha, phi0, t0, return_window=False):
+    def __call__(self, A, w, alpha, phi0, t0, tau, return_window=False):
         t = np.arange(self.n_samples)*self.dt
         data = np.zeros_like(t, dtype=np.complex128)
 
+        t_end = t0 + tau
+
+        if (int(t_end/self.dt) + 1)>self.n_samples:
+            raise ValueError('Signal not contained in sample window')
+
         if self.smoothing_factor is None:
-            signal_ind = (t>t0)&(t<t0+self.tau)
+            signal_ind = (t>t0)&(t<t_end)
         else:
             signal_ind = np.arange(self.n_samples)
 
         data[signal_ind] = A*np.exp(1.0j*(w*(t[signal_ind]-t0) + alpha/2*(t[signal_ind]-t0)**2 + phi0))
 
-        t_end = t0 + self.tau
+
 
         if self.smoothing_factor is not None:
             window = smoothing(self.smoothing_factor, t0)(t)*smoothing(self.smoothing_factor, t_end, end=True)(t)
