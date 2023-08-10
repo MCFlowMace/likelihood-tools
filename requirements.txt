@@ -1,0 +1,10 @@
+numpy
+scipy
+adaptive
+tqdm
+matplotlib
+seaborn
+holoviews
+bokeh
+dill>=0.3.7
+multiprocess

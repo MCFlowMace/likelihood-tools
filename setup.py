@@ -10,18 +10,8 @@ import setuptools
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-required = [
-    "numpy",
-    "scipy",
-    "adaptive",
-    "tqdm",
-    "matplotlib",
-    "seaborn",
-    "holoviews",
-    "bokeh",
-    "dill>=0.3.7",
-    "multiprocess"
-]
+with open("requirements.txt", "r") as fh:
+    required = [line.strip() for line in fh]
 
 setuptools.setup(
     name="likelihoodtools",
