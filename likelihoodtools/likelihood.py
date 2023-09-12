@@ -7,8 +7,8 @@ Date: September 22, 2022
 """
 
 import numpy as np
-from scipy.stats import norm
-from scipy.stats import chi2
+from scipy.stats import norm, chi2
+from scipy.special import erfinv
 from tqdm import tqdm
 from scipy.interpolate import interp1d, interp2d
 from scipy.interpolate import CloughTocher2DInterpolator, RegularGridInterpolator
@@ -612,6 +612,11 @@ def sigma_to_confidence(n_sigma):
 
 def confidence_to_threshold(llh_max, confidence, parameters_of_interest):
     return llh_max - 0.5*chi2.ppf(confidence, df=parameters_of_interest)
+
+
+def llh_to_sigma(llh, llh_max):
+    confidence = chi2.cdf(-2*(llh-llh_max), df=1)
+    return erfinv(confidence)*np.sqrt(2)
 
             
 class Fitter(ABC):
