@@ -2,7 +2,7 @@
 """
 
 Author: F. Thomas
-Date: September 22, 2022
+Date: September 01, 2023
 
 """
 
@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from math import sqrt
 
-from likelihoodtools.likelihood import llh_to_sigma, sigma_to_confidence, confidence_to_threshold
+from .likelihood import llh_to_sigma, sigma_to_confidence, confidence_to_threshold
 
 
 def get_correlation_matrix(cov):
@@ -112,7 +112,12 @@ def test_ellipses(cost_f, ellipses):
     vals = np.empty((len(ellipses), ellipses[0].shape[0]))
     for i, e in enumerate(ellipses):
         for j, param in enumerate(e):
-            vals[i][j] = cost_f(*param)
+            try:
+                val = cost_f(*param)
+            except ValueError: 
+                print('Cost function is called outside its valid range. Setting val=0.')
+                val = 0.
+            vals[i][j] = val
     return vals
 
 
