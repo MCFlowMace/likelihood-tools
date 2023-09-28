@@ -669,8 +669,8 @@ class Fitter(ABC):
              
 class FunctionFitter(Fitter):
     
-    def __init__(self, sigma_levels, asimov=True):
-        Fitter.__init__(self, sigma_levels)
+    def __init__(self, confidence_levels, asimov=True):
+        Fitter.__init__(self, confidence_levels)
         
         if not asimov:
             raise NotImplementedError('This fitter for non-asimov datasets is not implemented')
@@ -764,8 +764,8 @@ class FunctionFitter(Fitter):
                         
 class GridFitter(Fitter):
     
-    def __init__(self, sigma_levels):
-        Fitter.__init__(self, sigma_levels)
+    def __init__(self, confidence_levels):
+        Fitter.__init__(self, confidence_levels)
         
     def get_bounding_box(self, llh, level):
     
