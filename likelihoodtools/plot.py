@@ -83,7 +83,7 @@ def make_2d_llh_plot(fit_result, scale_fig=1.0, debug=False, name=None):
 
         fmt = {}
         for i, l in enumerate(c_line.levels):
-            if use_sigma_confidence:
+            if not use_sigma_confidence:
                 s_confidence = f'{confidence_levels[i]*100:.1f}%'
             else:
                 s_confidence = f'{confidence_levels[i]:.1f}$\sigma$'
