@@ -556,7 +556,7 @@ class AdaptiveLikelihoodScanner(LikelihoodScanner):
 
 class FitResult:
     
-    def __init__(self, best_fit, errors, confidence_levels, llh_vals, llh_scan):
+    def __init__(self, best_fit, errors, confidence_levels, llh_vals, llh_scan, use_sigma_confidence):
         self.best_fit_view = best_fit
         self.errors_view = errors
         self.best_fit = best_fit
@@ -564,6 +564,7 @@ class FitResult:
         self.confidence_levels = confidence_levels
         self.llh_vals = llh_vals
         self.llh_scan = llh_scan
+        self.use_sigma_confidence = use_sigma_confidence
         self.generate_best_fit()
         
     def generate_best_fit(self):
@@ -621,12 +622,23 @@ def llh_to_sigma(llh, llh_max):
             
 class Fitter(ABC):
     
-    def __init__(self, sigma_levels):
+    def __init__(self, confidence_levels, use_sigma_confidence=False):
         
-        self.confidence_levels = [sigma_to_confidence(sigma) for sigma in sigma_levels]
+        #self.sigma_levels = sigma_levels
+        #self.confidence_levels = [sigma_to_confidence(sigma) for sigma in sigma_levels]
+        self.confidence_levels = confidence_levels
+        self.use_sigma_confidence = use_sigma_confidence
         
    # def get_confidence_threshold(self, llh_max, confidence, parameters_of_interest):
    #     return llh_max - 0.5*chi2.ppf(confidence, df=parameters_of_interest)
+
+    def confidence_to_threshold(self, llh_max, confidence, parameters_of_interest):
+        p = parameters_of_interest
+        c = confidence
+        if self.use_sigma_confidence:
+            p = 1
+            c = sigma_to_confidence(confidence)
+        return confidence_to_threshold(llh_max, c, p)
         
     def get_best_fit_with_errors(self, llh_scan, parameters_of_interest=1, scaling_factor=1.):
         
@@ -733,7 +745,7 @@ class FunctionFitter(Fitter):
         
         bound_vals = np.empty((len(self.confidence_levels), len(axes), 2))
         for i, level in enumerate(self.confidence_levels):
-            threshold = confidence_to_threshold(max_llh, level, len(axes))
+            threshold = self.confidence_to_threshold(max_llh, level, len(axes))
             llh_vals.append(threshold)
             bound_vals[i] = self.find_roots(llh_scan, threshold)
         
@@ -747,7 +759,7 @@ class FunctionFitter(Fitter):
         llh_vals.append(max_llh)
 
         return FitResult(best_fit[0,:,0], errors, self.confidence_levels, 
-                        np.array(llh_vals), llh_scan)
+                        np.array(llh_vals), llh_scan, self.use_sigma_confidence)
                         
                         
 class GridFitter(Fitter):
@@ -869,7 +881,7 @@ class GridFitter(Fitter):
         
         bounds_ind = np.empty((len(self.confidence_levels), len(axes), 2), dtype=np.int64)
         for i, level in enumerate(self.confidence_levels):
-            threshold = confidence_to_threshold(max_llh, level, len(axes))
+            threshold = self.confidence_to_threshold(max_llh, level, len(axes))
             llh_vals.append(threshold)
             bounds_ind[i] = self.get_bounding_box(llh, threshold)
      
@@ -887,7 +899,7 @@ class GridFitter(Fitter):
         llh_vals.append(max_llh)
 
         return FitResult(best_fit[0,:,0], errors, self.confidence_levels, 
-                        np.array(llh_vals), llh_scan)
+                        np.array(llh_vals), llh_scan, self.use_sigma_confidence)
 
     
 

@@ -44,6 +44,7 @@ def make_2d_llh_plot(fit_result, scale_fig=1.0, debug=False, name=None):
     errors = fit_result.errors_view
     confidence_thresholds = fit_result.llh_vals[:-1]
     confidence_levels = fit_result.confidence_levels
+    use_sigma_confidence = fit_result.use_sigma_confidence
     
     ll = (best_fit[0]-errors[0,0,0], best_fit[1]-errors[0,1,0])
     width = errors[0,0,0]+errors[0,0,1]
@@ -82,7 +83,11 @@ def make_2d_llh_plot(fit_result, scale_fig=1.0, debug=False, name=None):
 
         fmt = {}
         for i, l in enumerate(c_line.levels):
-            fmt[l] = f'{confidence_levels[i]*100:.1f}%'
+            if use_sigma_confidence:
+                s_confidence = f'{confidence_levels[i]*100:.1f}%'
+            else:
+                s_confidence = f'{confidence_levels[i]:.1f}$\sigma$'
+            fmt[l] = s_confidence
 
         ax.clabel(c_line, c_line.levels, inline=True, fmt=fmt, fontsize=10)
 
