@@ -96,6 +96,7 @@ def make_2d_llh_plot(fit_result, scale_fig=1.0, debug=False, name=None):
         cbar = fig.colorbar(im, ax=ax)
         cbar.set_label('log-likelihood')
         plt.legend()
+        plt.tight_layout()
         
         if name is not None:
             plt.savefig(name + '.png',dpi=400)
@@ -185,6 +186,7 @@ def make_1d_llh_plot(fit_result, ylim=None,  scale_fig=1.0, name=None, hlines=[]
         plt.ylabel('log-likelihood')
         plt.xlabel(ax_names[0])
         plt.legend(loc='upper right')
+        plt.tight_layout()
                 
         if name is not None:
             plt.savefig(name+'.png', dpi=400)
