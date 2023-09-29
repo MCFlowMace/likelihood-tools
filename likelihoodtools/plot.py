@@ -93,6 +93,8 @@ def make_2d_llh_plot(fit_result, scale_fig=1.0, debug=False, name=None):
 
         ax.set_xlabel(ax_names[0])
         ax.set_ylabel(ax_names[1])
+
+        ax.ticklabel_format(style='sci', scilimits=(-2,4))
         cbar = fig.colorbar(im, ax=ax)
         cbar.set_label('log-likelihood')
         plt.legend()
@@ -183,6 +185,7 @@ def make_1d_llh_plot(fit_result, ylim=None,  scale_fig=1.0, name=None, hlines=[]
             plt.axhline(line_level, ls='--')
             plt.text(xmin,line_level, f'{hline:.1f}$\sigma$')
 
+        plt.ticklabel_format(style='sci', scilimits=(-2,4))
         plt.ylabel('log-likelihood')
         plt.xlabel(ax_names[0])
         plt.legend(loc='upper right')
