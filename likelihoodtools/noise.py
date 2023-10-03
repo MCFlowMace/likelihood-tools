@@ -17,4 +17,4 @@ def thermal_noise_var(T, sr, complex_data=True):
     kb = 1.380649e-23
     
     df = sr if complex_data else sr/2
-    return 4*kb*R*T*df
+    return kb*R*T*df
