@@ -25,7 +25,7 @@ def scaled_plot(f_plot, scaling):
         f_plot()
  
 
-def make_2d_llh_plot(fit_result, scale_fig=1.0, debug=False, name=None):
+def make_2d_llh_plot(fit_result, additional_plot=None, scale_fig=1.0, debug=False, name=None):
     
     llh_scan = fit_result.llh_scan
     llh = llh_scan.llh
@@ -97,6 +97,10 @@ def make_2d_llh_plot(fit_result, scale_fig=1.0, debug=False, name=None):
         ax.ticklabel_format(style='sci', scilimits=(-2,4))
         cbar = fig.colorbar(im, ax=ax)
         cbar.set_label('log-likelihood')
+
+        if additional_plot is not None:
+            additional_plot(ax)
+
         plt.legend()
         plt.tight_layout()
         
@@ -130,7 +134,7 @@ def make_2d_llh_plot(fit_result, scale_fig=1.0, debug=False, name=None):
 
         
         
-def make_1d_llh_plot(fit_result, ylim=None,  scale_fig=1.0, name=None, hlines=[]):
+def make_1d_llh_plot(fit_result, additional_plot=None, ylim=None, scale_fig=1.0, name=None, hlines=[]):
     
     llh_scan = fit_result.llh_scan
     
@@ -188,6 +192,10 @@ def make_1d_llh_plot(fit_result, ylim=None,  scale_fig=1.0, name=None, hlines=[]
         plt.ticklabel_format(style='sci', scilimits=(-2,4))
         plt.ylabel('log-likelihood')
         plt.xlabel(ax_names[0])
+
+        if additional_plot is not None:
+            additional_plot(plt.gca())
+
         plt.legend(loc='upper right')
         plt.tight_layout()
                 
